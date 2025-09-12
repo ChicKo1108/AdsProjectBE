@@ -1,7 +1,7 @@
 const Base = require('./base');
 
 /**
- * User 模型类
+ * AdPlan 模型类
  * @class
  * @extends Base
  * 
@@ -11,8 +11,8 @@ const Base = require('./base');
  * - id: number
  * - name: string // 计划名称
  * - plan_type: string // 计划类型
- * - target: number(0-应用推广, 1-网页推广, 2-快应用推广, 3-小程序推广, 4-应用下载) // 推广目标
- * - price_stratagy: number(0-稳定成本, 1-最大转化, 2-最优成本) // 竞价策略
+ * - target: string(mobile_app-移动应用, game-游戏, ecommerce-电商, education-教育, finance-金融) // 推广目标
+ * - price_stratagy: string(auto_bid-自动出价, manual_bid-手动出价) // 竞价策略
  * - placement_type: string // 投放类型
  * - status: Number(0-草稿, 1-启用, 2-暂停, 3-结束)
  * - chuang_yi_you_xuan: number(0-未启动, 1-启动)
@@ -31,6 +31,10 @@ const Base = require('./base');
 class AdPlan extends Base {
   constructor() {
     super('ad_plan');
+  }
+
+  async findById(id) {
+    return this.query().where({ id }).first();
   }
 
   async findByName(name) {

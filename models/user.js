@@ -10,6 +10,7 @@ const Base = require('./base');
  * 
  * 表结构：
  * - id: number (主键, 自增)
+ * - name: string (用户姓名)
  * - username: string (用户名, 唯一)
  * - password: string (加密密码)
  * - created_at: Date (创建时间)

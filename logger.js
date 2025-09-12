@@ -1,22 +1,22 @@
 const { createLogger, format, transports } = require('winston');
 const fs = require('fs');
 const path = require('path');
+const config = require('./config');
 
-const env = process.env.NODE_ENV || 'development';
-const logDir = 'log';
+// 从配置文件获取日志路径
+const logFilePath = config.logging.filePath;
+const logDir = path.dirname(logFilePath);
 
-// Create the log directory if it does not exist
+// 创建日志目录（如果不存在）
 if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir);
+  fs.mkdirSync(logDir, { recursive: true });
 }
 
-const filename = path.join(logDir, 'results.log');
-
 const logger = createLogger({
-  // change level if in dev environment versus production
-  level: env === 'production' ? 'info' : 'debug',
+  // 使用配置文件中的日志级别
+  level: config.logging.level,
   format: format.combine(
-    format.label({ label: path.basename(process.mainModule.filename) }),
+    format.label({ label: path.basename(require.main ? require.main.filename : 'app') }),
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' })
   ),
   transports: [
@@ -30,7 +30,7 @@ const logger = createLogger({
       )
     }),
     new transports.File({
-      filename,
+      filename: logFilePath,
       format: format.combine(
         format.printf(
           info =>
