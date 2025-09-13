@@ -1,6 +1,8 @@
 /**
- * 权限验证工具函数
+ * 权限工具函数
+ * 用于处理用户权限验证相关的功能
  */
+const ResponseUtils = require('./responseUtils');
 
 /**
  * 检查用户是否为超级管理员
@@ -28,11 +30,7 @@ function isAdmin(user) {
  */
 function requireSuperAdmin(req, res, next) {
   if (!isSuperAdmin(req.user)) {
-    return res.status(403).json({
-      code: 403,
-      message: '权限不足，只有超级管理员可以执行此操作',
-      data: null
-    });
+    return ResponseUtils.forbidden(res, '权限不足，只有超级管理员可以执行此操作');
   }
   next();
 }
@@ -45,11 +43,7 @@ function requireSuperAdmin(req, res, next) {
  */
 function requireAdmin(req, res, next) {
   if (!isAdmin(req.user)) {
-    return res.status(403).json({
-      code: 403,
-      message: '权限不足，需要管理员权限',
-      data: null
-    });
+    return ResponseUtils.forbidden(res, '权限不足，需要管理员权限');
   }
   next();
 }

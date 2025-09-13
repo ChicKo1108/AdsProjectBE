@@ -11,8 +11,8 @@ const Base = require('./base');
  * - id: number
  * - name: string // 计划名称
  * - plan_type: string // 计划类型
- * - target: string(mobile_app-移动应用, game-游戏, ecommerce-电商, education-教育, finance-金融) // 推广目标
- * - price_stratagy: string(auto_bid-自动出价, manual_bid-手动出价) // 竞价策略
+ * - target: enum(app, web, quick_app, mini_app, download) // 推广目标：应用推广-app, 网页推广-web, 快应用推广-quick_app, 小程序推广-mini_app, 应用下载-download
+ * - price_stratagy: enum(stable_cost, max_conversion, optimal_cost) // 竞价策略：稳定成本-stable_cost, 最大转化-max_conversion, 最优成本-optimal_cost
  * - placement_type: string // 投放类型
  * - status: Number(0-草稿, 1-启用, 2-暂停, 3-结束)
  * - chuang_yi_you_xuan: number(0-未启动, 1-启动)
@@ -31,6 +31,66 @@ const Base = require('./base');
 class AdPlan extends Base {
   constructor() {
     super('ad_plan');
+  }
+
+  // 推广目标枚举
+  static TARGET = {
+    APP: 'app',                // 应用推广
+    WEB: 'web',                // 网页推广
+    QUICK_APP: 'quick_app',    // 快应用推广
+    MINI_APP: 'mini_app',      // 小程序推广
+    DOWNLOAD: 'download'       // 应用下载
+  };
+
+  // 竞价策略枚举
+  static PRICE_STRATEGY = {
+    STABLE_COST: 'stable_cost',        // 稳定成本
+    MAX_CONVERSION: 'max_conversion',  // 最大转化
+    OPTIMAL_COST: 'optimal_cost'       // 最优成本
+  };
+
+  // 状态枚举
+  static STATUS = {
+    DRAFT: 0,     // 草稿
+    ACTIVE: 1,    // 启用
+    PAUSED: 2,    // 暂停
+    ENDED: 3      // 结束
+  };
+
+  // 创意优选枚举
+  static CREATIVE_OPTIMIZATION = {
+    DISABLED: 0,  // 未启动
+    ENABLED: 1    // 启动
+  };
+
+  // 验证推广目标是否有效
+  static isValidTarget(target) {
+    return Object.values(this.TARGET).includes(target);
+  }
+
+  // 验证竞价策略是否有效
+  static isValidPriceStrategy(priceStrategy) {
+    return Object.values(this.PRICE_STRATEGY).includes(priceStrategy);
+  }
+
+  // 验证状态是否有效
+  static isValidStatus(status) {
+    return Object.values(this.STATUS).includes(status);
+  }
+
+  // 验证创意优选是否有效
+  static isValidCreativeOptimization(value) {
+    return Object.values(this.CREATIVE_OPTIMIZATION).includes(value);
+  }
+
+  // 获取所有有效的推广目标
+  static getValidTargets() {
+    return Object.values(this.TARGET);
+  }
+
+  // 获取所有有效的竞价策略
+  static getValidPriceStrategies() {
+    return Object.values(this.PRICE_STRATEGY);
   }
 
   async findById(id) {

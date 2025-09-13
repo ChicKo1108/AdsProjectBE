@@ -1,5 +1,6 @@
 const AdminUserService = require('../../services/admin/userService');
 const { isSuperAdmin } = require('../../utils/permissionUtils');
+const ResponseUtils = require('../../utils/responseUtils');
 
 class AdminUserController {
   /**
@@ -9,49 +10,29 @@ class AdminUserController {
     try {
       // 权限验证：只有超级管理员可以创建用户
       if (!isSuperAdmin(req.user)) {
-        return res.status(403).json({
-          code: 403,
-          message: '权限不足，只有超级管理员可以创建用户',
-          data: null
-        });
+        return ResponseUtils.forbidden(res, '权限不足，只有超级管理员可以创建用户');
       }
 
       const { username, name, password, role } = req.body;
 
       // 参数验证
       if (!username || !username.trim()) {
-        return res.status(400).json({
-          code: 400,
-          message: '用户名不能为空',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '用户名不能为空');
       }
 
       if (!name || !name.trim()) {
-        return res.status(400).json({
-          code: 400,
-          message: '姓名不能为空',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '姓名不能为空');
       }
 
       if (!password || password.length < 6) {
-        return res.status(400).json({
-          code: 400,
-          message: '密码不能为空且长度不能少于6位',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '密码不能为空且长度不能少于6位');
       }
 
       // 验证角色
       const validRoles = ['super-admin', 'admin', 'user'];
       const userRole = role || 'user'; // 默认角色为user
       if (!validRoles.includes(userRole)) {
-        return res.status(400).json({
-          code: 400,
-          message: '角色必须是 super-admin、admin 或 user',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '角色必须是 super-admin, admin 或 user');
       }
 
       // 调用服务层创建用户
@@ -63,28 +44,16 @@ class AdminUserController {
       });
 
       if (!result.success) {
-        return res.status(400).json({
-          code: 400,
-          message: result.message,
-          data: null
-        });
+        return ResponseUtils.badRequest(res, result.message);
       }
 
-      res.status(201).json({
-        code: 201,
-        message: '用户创建成功',
-        data: {
-          user: result.user
-        }
+      return ResponseUtils.created(res, '用户创建成功', {
+        user: result.user
       });
 
     } catch (error) {
       console.error('创建用户失败:', error);
-      res.status(500).json({
-        code: 500,
-        message: '创建用户失败',
-        data: null
-      });
+      return ResponseUtils.serverError(res, '创建用户失败');
     }
   }
 

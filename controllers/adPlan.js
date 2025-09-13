@@ -1,5 +1,6 @@
 const AdPlan = require('../models/adPlan');
 const AdPlanService = require('../services/adPlanService');
+const ResponseUtils = require('../utils/responseUtils');
 
 class AdPlanController {
   /**
@@ -16,11 +17,7 @@ class AdPlanController {
       if (page) {
         const pageNum = parseInt(page);
         if (isNaN(pageNum) || pageNum < 1) {
-          return res.status(400).json({
-            code: 400,
-            message: '页码必须是大于0的整数',
-            data: null
-          });
+          return ResponseUtils.badRequest(res, '页码必须是大于0的整数');
         }
         queryParams.page = pageNum;
       }
@@ -28,11 +25,7 @@ class AdPlanController {
       if (pageSize) {
         const pageSizeNum = parseInt(pageSize);
         if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 100) {
-          return res.status(400).json({
-            code: 400,
-            message: '每页数量必须是1-100之间的整数',
-            data: null
-          });
+          return ResponseUtils.badRequest(res, '每页数量必须是1-100之间的整数');
         }
         queryParams.pageSize = pageSizeNum;
       }
@@ -44,11 +37,7 @@ class AdPlanController {
       if (status !== undefined && status !== '') {
         const statusNum = parseInt(status);
         if (isNaN(statusNum)) {
-          return res.status(400).json({
-            code: 400,
-            message: '状态必须是数字',
-            data: null
-          });
+          return ResponseUtils.badRequest(res, '状态必须是数字');
         }
         queryParams.status = statusNum;
       }
@@ -56,19 +45,11 @@ class AdPlanController {
       // 调用service获取分页数据
       const result = await AdPlanService.getAdPlanList(queryParams);
 
-      res.json({
-        code: 200,
-        message: 'success',
-        data: result
-      });
+      return ResponseUtils.success(res, 200, '获取成功', result);
 
     } catch (error) {
       console.error('获取广告计划列表失败:', error);
-      res.status(500).json({
-        code: 500,
-        message: '获取广告计划列表失败',
-        data: null
-      });
+      return ResponseUtils.serverError(res, '获取广告计划列表失败');
     }
   }
 

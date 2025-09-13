@@ -105,6 +105,22 @@ class AuthService {
       throw error;
     }
   }
+  
+  static async getUserInfo(username) {
+    try {
+      const user = await knex('user')
+        .select(['id', 'username', 'name', 'role', 'created_at', 'updated_at'])
+        .where({ username })
+        .first();
+      if (!user) {
+        return null;
+      }
+      return user;
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+      throw error;
+    }
+  }
 
   /**
    * 验证JWT token

@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const logger = require('./logger');
 const config = require('./config');
+const ResponseUtils = require('./utils/responseUtils');
 
 // 路由文件引用
 const indexRouter = require('./routes/index');
@@ -94,12 +95,8 @@ app.use(function(req, res, next) {
 const _errorHandler = (err, req, res, next) => {
   logger.error(`${req.method} ${req.originalUrl} ` + err.message)
   const errorMsg = err.message
-  res.status(err.status || 500).json({
-    code: -1,
-    success: false,
-    message: errorMsg,
-    data: {}
-  })
+  const statusCode = err.status || 500
+  return ResponseUtils.error(res, statusCode, errorMsg, {}, -1)
 }
 app.use(_errorHandler)
 
