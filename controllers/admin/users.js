@@ -20,10 +20,6 @@ class AdminUserController {
         return ResponseUtils.badRequest(res, '用户名不能为空');
       }
 
-      if (!name || !name.trim()) {
-        return ResponseUtils.badRequest(res, '姓名不能为空');
-      }
-
       if (!password || password.length < 6) {
         return ResponseUtils.badRequest(res, '密码不能为空且长度不能少于6位');
       }
@@ -38,7 +34,7 @@ class AdminUserController {
       // 调用服务层创建用户
       const result = await AdminUserService.createUser({
         username: username.trim(),
-        name: name.trim(),
+        name: (name || username).trim(),
         password,
         role: userRole
       });
@@ -64,61 +60,52 @@ class AdminUserController {
     try {
       // 权限验证：只有超级管理员可以修改用户
       if (!isSuperAdmin(req.user)) {
-        return res.status(403).json({
-          code: 403,
-          message: '权限不足，只有超级管理员可以修改用户',
-          data: null
-        });
+        return ResponseUtils.forbidden(res, '权限不足，只有超级管理员可以修改用户');
       }
 
       const { id } = req.params;
-      const { name, password, role } = req.body;
+      const { name, password, role, ban } = req.body;
 
       // 参数验证
       if (!id || isNaN(parseInt(id))) {
-        return res.status(400).json({
-          code: 400,
-          message: '用户ID无效',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '用户ID无效');
       }
 
       // 至少需要一个参数
-      if (!name && !password && !role) {
-        return res.status(400).json({
-          code: 400,
-          message: '至少需要提供一个要修改的字段',
-          data: null
-        });
+      if (!name && !password && !role && !(typeof ban === 'boolean')) {
+        return ResponseUtils.badRequest(res, '至少需要提供一个要修改的字段');
       }
 
       // 验证姓名
       if (name !== undefined && (!name || !name.trim())) {
-        return res.status(400).json({
-          code: 400,
-          message: '姓名不能为空',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '姓名不能为空');
       }
 
       // 验证密码
       if (password !== undefined && password.length < 6) {
-        return res.status(400).json({
-          code: 400,
-          message: '密码长度不能少于6位',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '密码长度不能少于6位');
+      }
+
+      // 验证封禁状态
+      if (ban !== undefined) {
+        if (typeof ban !== 'boolean') {
+          return ResponseUtils.badRequest(res, '封禁状态必须是布尔值');
+        }
+        // 不能封禁自己
+        if (ban && req.user.userId === parseInt(id)) {
+          return ResponseUtils.badRequest(res, '不能封禁自己');
+        }
       }
 
       // 验证角色
       if (role !== undefined) {
         const validRoles = ['super-admin', 'admin', 'user'];
         if (!validRoles.includes(role)) {
-          return res.status(400).json({
-            code: 400,
-            message: '角色必须是 super-admin、admin 或 user',
-            data: null
-          });
+          return ResponseUtils.badRequest(res, '角色必须是 super-admin、admin 或 user');
+        }
+        // 不能修改自己的角色
+        if (req.user.userId === parseInt(id)) {
+          return ResponseUtils.badRequest(res, '不能修改自己的权限');
         }
       }
 
@@ -127,33 +114,39 @@ class AdminUserController {
       if (name !== undefined) updateData.name = name.trim();
       if (password !== undefined) updateData.password = password;
       if (role !== undefined) updateData.role = role;
+      if (ban !== undefined) updateData.ban = Number(ban);
 
       // 调用服务层修改用户
       const result = await AdminUserService.updateUser(parseInt(id), updateData);
 
       if (!result.success) {
-        return res.status(400).json({
-          code: 400,
-          message: result.message,
-          data: null
-        });
+        return ResponseUtils.badRequest(res, result.message);
       }
 
-      res.status(200).json({
-        code: 200,
-        message: '用户修改成功',
-        data: {
-          user: result.user
-        }
-      });
+      return ResponseUtils.success(res, 200, '用户修改成功', result);
 
     } catch (error) {
       console.error('修改用户失败:', error);
-      res.status(500).json({
-        code: 500,
-        message: '修改用户失败',
-        data: null
-      });
+      return ResponseUtils.serverError(res, '修改用户失败');
+    }
+  }
+
+  /**
+   * 获取用户列表
+   */
+  static async getUserList(req, res) {
+    try {
+      // 权限验证：只有超级管理员可以获取用户列表
+      if (!isSuperAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，只有超级管理员可以获取用户列表');
+      }
+
+      // 调用服务层获取用户列表
+      const result = await AdminUserService.getUserList();
+      return ResponseUtils.success(res, 200, '获取用户列表成功', result);
+    } catch (error) {
+      console.error('获取用户列表失败:', error);
+      return ResponseUtils.serverError(res, '获取用户列表失败');
     }
   }
 }

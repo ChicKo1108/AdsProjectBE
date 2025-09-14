@@ -4,7 +4,7 @@
  */
 
 // 广告计划相关常量
-const AD_PLAN = {
+const AD_PLAN_ENUMS = {
   // 推广目标（更新后的枚举值）
   TARGET: {
     APP: 'app',                // 应用推广
@@ -100,7 +100,7 @@ const getEnumDescription = (enumType, value) => {
 };
 
 module.exports = {
-  AD_PLAN,
+  AD_PLAN_ENUMS,
   USER_ROLES,
   AD_CREATIVE_STATUS,
   getEnumValues,

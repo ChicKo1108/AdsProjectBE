@@ -1,4 +1,5 @@
 const AdCreativesService = require('../services/adCreativesService');
+const ResponseUnits = require('../utils/responseUtils');
 
 class AdCreativesController {
   /**
@@ -15,11 +16,7 @@ class AdCreativesController {
       if (page) {
         const pageNum = parseInt(page);
         if (isNaN(pageNum) || pageNum < 1) {
-          return res.status(400).json({
-            code: 400,
-            message: '页码必须是大于0的整数',
-            data: null
-          });
+          return ResponseUnits.badRequest(res, '页码必须是大于0的整数');
         }
         queryParams.page = pageNum;
       }
@@ -27,11 +24,7 @@ class AdCreativesController {
       if (pageSize) {
         const pageSizeNum = parseInt(pageSize);
         if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 100) {
-          return res.status(400).json({
-            code: 400,
-            message: '每页数量必须是1-100之间的整数',
-            data: null
-          });
+          return ResponseUnits.badRequest(res, '每页数量必须是1-100之间的整数');
         }
         queryParams.pageSize = pageSizeNum;
       }
@@ -43,23 +36,14 @@ class AdCreativesController {
       if (status !== undefined && status !== '') {
         const statusNum = parseInt(status);
         if (isNaN(statusNum)) {
-          return res.status(400).json({
-            code: 400,
-            message: '状态必须是数字',
-            data: null
-          });
+          return ResponseUnits.badRequest(res, '状态必须是数字');
         }
         queryParams.status = statusNum;
       }
       
       // 调用service获取分页数据
       const result = await AdCreativesService.getAdCreativesList(queryParams);
-
-      res.json({
-        code: 200,
-        message: 'success',
-        data: result
-      });
+      return ResponseUnits.success(res, 200, '获取成功', result);
     } catch (error) {
       console.error('获取广告创意列表失败:', error);
       res.status(500).json({
@@ -78,37 +62,20 @@ class AdCreativesController {
       const { id } = req.params;
 
       if (!id) {
-        return res.status(400).json({
-          code: 400,
-          message: '广告创意ID不能为空',
-          data: null
-        });
+        return ResponseUnits.badRequest(res, '广告创意ID不能为空');
       }
 
       const adCreative = await AdCreativesService.getAdCreativeById(id);
 
       if (!adCreative) {
-        return res.status(404).json({
-          code: 404,
-          message: '广告创意不存在',
-          data: null
-        });
+        return ResponseUnits.notFound(res, '广告创意不存在');
       }
-
-      res.json({
-        code: 200,
-        message: 'success',
-        data: {
-          ad_creative: adCreative
-        }
+      return ResponseUnits.success(res, 200, '获取成功', {
+        adCreative
       });
     } catch (error) {
       console.error('获取广告创意详情失败:', error);
-      res.status(500).json({
-        code: 500,
-        message: '获取广告创意详情失败',
-        data: null
-      });
+      return ResponseUnits.serverError(res, '获取广告创意详情失败');
     }
   }
 }

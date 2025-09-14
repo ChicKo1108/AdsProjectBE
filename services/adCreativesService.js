@@ -1,5 +1,5 @@
-const AdCreatives = require('../models/adCreatives');
-const knex = require('../models/knex');
+const AdCreatives = require("../models/adCreatives");
+const knex = require("../models/knex");
 
 class AdCreativesService {
   /**
@@ -24,23 +24,33 @@ class AdCreativesService {
     const offset = (page - 1) * pageSize;
 
     // 构建基础查询
-    let query = knex('ad_creatives')
-      .select('*')
-      .orderBy('id', 'desc');
+    let query = knex("ad_creatives").select("*").orderBy("id", "desc");
 
     // 添加名称搜索条件
     if (name && name.trim()) {
-      query = query.where('name', 'like', `%${name.trim()}%`);
+      query = query.orWhere("name", "like", `%${name.trim()}%`);
+      query = query.orWhere("display_id", "like", `%${name.trim()}%`);
     }
 
     // 添加状态筛选条件
-    if (status !== undefined && status !== null && status !== '') {
-      query = query.where('status', status);
+    if (status !== undefined && status !== null && status !== "") {
+      query = query.where("status", status);
     }
 
-    // 获取总数
-    const countQuery = query.clone().count('* as total');
-    const [{ total }] = await countQuery;
+    // 获取总数 - 重新构建查询以避免GROUP BY错误
+    let countQuery = knex("ad_creatives");
+
+    // 添加与主查询相同的筛选条件
+    if (name && name.trim()) {
+      countQuery = countQuery.orWhere("name", "like", `%${name.trim()}%`);
+      countQuery = countQuery.orWhere("display_id", "like", `%${name.trim()}%`);
+    }
+
+    if (status !== undefined && status !== null && status !== "") {
+      countQuery = countQuery.where("status", status);
+    }
+
+    const [{ total }] = await countQuery.count("* as total");
 
     // 执行分页查询
     const adCreatives = await query.limit(pageSize).offset(offset);
@@ -55,8 +65,8 @@ class AdCreativesService {
         total: parseInt(total),
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
@@ -67,7 +77,7 @@ class AdCreativesService {
    */
   static async getAdCreativeById(id) {
     const adCreativesData = await AdCreatives.all();
-    return adCreativesData.find(item => item.id === parseInt(id)) || null;
+    return adCreativesData.find((item) => item.id === parseInt(id)) || null;
   }
 }
 

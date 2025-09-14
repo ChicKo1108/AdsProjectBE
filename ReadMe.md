@@ -2,16 +2,36 @@
 
 ## 接口文档
 
-### 用户端
+### 认证相关
 
 #### 登录
-- url: /api/login
+- url: /api/auth/login
 - method: POST
 - params:
   - username: string
   - password: string
 - response:
   - token: string
+
+#### 注册
+- url: /api/auth/register
+- method: POST
+- params:
+  - username: string
+  - password: string
+- response:
+  - userId: number
+
+#### 验证Token
+- url: /api/auth/validate-token
+- method: POST
+- headers:
+  - Authorization: Bearer <token>
+- response:
+  - valid: boolean
+  - user: object
+
+### 用户端
 
 #### 首页信息接口
 获取账户信息，时间倒序前五条广告计划，时间倒序前五条广告创意
@@ -61,9 +81,17 @@
     - click_count: number // 点击量
     - click_rate: number // 点击率
 
-#### 获取广告计划列表
-- url: /api/ad_plans
+#### 获取用户列表
+- url: /api/users
 - method: GET
+- auth: required
+- response:
+  - users: array
+
+#### 获取广告计划列表
+- url: /api/ad-plans
+- method: GET
+- auth: required
 - params:
   - page: number
   - pageSize: number
@@ -94,8 +122,9 @@
     - status: number
 
 #### 获取广告计划详情
-- url: /api/ad_plans/:id
+- url: /api/ad-plans/:id
 - method: GET
+- auth: required
 - response:
   - ad_plan: object
     - id: number
@@ -121,13 +150,13 @@
     - status: number
 
 #### 获取广告组列表
-- url: /api/ad_groups
+- url: /api/ad-plans/ad-groups
 - method: GET
+- auth: required
 - params:
   - page: number
   - pageSize: number
   - name: string
-  - status: number
 - response:
   - ad_groups: array
     - id: number
@@ -135,8 +164,9 @@
     - ad_plans: AdPlan[]
 
 #### 获取广告创意列表
-- url: /api/ad_creatives
+- url: /api/ad-creatives
 - method: GET
+- auth: required
 - params:
   - page: number
   - pageSize: number
@@ -146,16 +176,25 @@
   - ad_creatives: array
 
 #### 获取广告创意详情
-- url: /api/ad_creatives/:id
+- url: /api/ad-creatives/:id
 - method: GET
+- auth: required
 - response:
   - ad_creative: object
 
 ### 管理员端
 
+#### 获取用户列表
+- url: /api/admin/users
+- method: GET
+- auth: admin required
+- response:
+  - users: array
+
 #### 创建用户
 - url: /api/admin/users
 - method: POST
+- auth: super-admin required
 - params:
   - username: string
   - name: string
@@ -167,6 +206,7 @@
 #### 修改用户
 - url: /api/admin/users/:id
 - method: PUT
+- auth: super-admin required
 - params:
   - name: string
   - password: string
@@ -175,8 +215,9 @@
   - user: object
 
 #### 新建广告计划
-- url: /api/admin/ad_plans
+- url: /api/admin/ad-plans
 - method: POST
+- auth: admin required
 - params:
   - name: string
   - plan_type: string
@@ -202,8 +243,9 @@
   - ad_plan: object
 
 #### 修改广告计划
-- url: /api/admin/ad_plans/:id
+- url: /api/admin/ad-plans/:id
 - method: PUT
+- auth: admin required
 - params:
   - name: string
   - plan_type: string
@@ -229,15 +271,16 @@
   - ad_plan: object
 
 #### 删除广告计划
-- url: /api/admin/ad_plans/:id
+- url: /api/admin/ad-plans/:id
 - method: DELETE
+- auth: admin required
 - response:
   - message: string
 
 #### 绑定广告组
-- url: /api/admin/ad_plans/:id/ad_groups
-- auth: admin
+- url: /api/admin/ad-plans/:id/ad-groups
 - method: POST
+- auth: admin required
 - params:
   - ad_group_ids: number[]
 - response:
@@ -245,14 +288,16 @@
 
 #### 删除广告组
 如果广告组中还有广告计划则不能删除
-- url: /api/admin/ad_plans/:id/ad_groups
+- url: /api/admin/ad-plans/:id/ad-groups
 - method: DELETE
+- auth: admin required
 - response:
   - message: string
 
 #### 创建广告创意
-- url: /api/admin/ad_creatives
+- url: /api/admin/ad-creatives
 - method: POST
+- auth: admin required
 - params:
   - name: string
   - display_id: string
@@ -271,8 +316,9 @@
   - ad_creative: object
 
 #### 修改广告创意
-- url: /api/admin/ad_creatives/:id
+- url: /api/admin/ad-creatives/:id
 - method: PUT
+- auth: admin required
 - params:
   - name: string
   - display_id: string
@@ -291,14 +337,16 @@
   - ad_creative: object
 
 #### 删除广告创意
-- url: /api/admin/ad_creatives/:id
+- url: /api/admin/ad-creatives/:id
 - method: DELETE
+- auth: admin required
 - response:
   - message: string
 
 #### 修改账户(Account)信息
 - url: /api/admin/account
 - method: PUT
+- auth: admin required
 - params:
   - balance: number
   - today_cost: number
@@ -322,8 +370,8 @@
 - id: number
 - name: string // 计划名称
 - plan_type: string // 计划类型
-- target: number(0-应用推广, 1-网页推广, 2-快应用推广, 3-小程序推广, 4-应用下载) // 推广目标
-- price_stratagy: number(0-稳定成本, 1-最大转化, 2-最优成本) // 竞价策略
+- target: enum(app-应用推广, web-网页推广, quick_app-快应用推广, mini_app-小程序推广, download-应用下载) // 推广目标
+- price_stratagy: enum(stable_cost-稳定成本, max_conversion-最大转化, optimal_cost-最优成本) // 竞价策略
 - placement_type: string // 投放类型
 - status: Number(0-草稿, 1-启用, 2-暂停, 3-结束)
 - chuang_yi_you_xuan: number(0-未启动, 1-启动)

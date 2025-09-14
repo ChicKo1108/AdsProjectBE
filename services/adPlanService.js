@@ -28,8 +28,18 @@ class AdPlanService {
       query = query.where('status', parseInt(status));
     }
     
-    // 获取总数
-    const countQuery = query.clone();
+    // 获取总数 - 重新构建查询以避免GROUP BY错误
+    let countQuery = knex('ad_plan');
+    
+    // 添加与主查询相同的筛选条件
+    if (name && name.trim()) {
+      countQuery = countQuery.where('name', 'like', `%${name.trim()}%`);
+    }
+    
+    if (status !== undefined && status !== null && status !== '') {
+      countQuery = countQuery.where('status', parseInt(status));
+    }
+    
     const [{ count }] = await countQuery.count('* as count');
     const total = parseInt(count);
     
@@ -129,9 +139,15 @@ class AdPlanService {
       query = query.where('name', 'like', `%${name.trim()}%`);
     }
 
-    // 获取总数
-    const countQuery = query.clone().count('* as total');
-    const [{ total }] = await countQuery;
+    // 获取总数 - 重新构建查询以避免GROUP BY错误
+    let countQuery = knex('ad_group');
+    
+    // 添加与主查询相同的筛选条件
+    if (name && name.trim()) {
+      countQuery = countQuery.where('name', 'like', `%${name.trim()}%`);
+    }
+    
+    const [{ total }] = await countQuery.count('* as total');
 
     // 执行分页查询
     const adGroups = await query.limit(pageSize).offset(offset);

@@ -133,6 +133,21 @@ class AdminUserService {
       throw error;
     }
   }
+
+  /**
+   * 获取用户列表
+   * @returns {Promise<Array>} - 用户列表
+   */
+  static async getUserList() {
+    try {
+      return await knex('user')
+        .select('id', 'username', 'name', 'role', 'created_at', 'updated_at')
+        .orderBy('id', 'asc');
+    } catch (error) {
+      console.error('获取用户列表失败:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = AdminUserService;

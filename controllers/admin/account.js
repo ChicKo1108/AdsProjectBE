@@ -1,7 +1,31 @@
-const AdminAccountService = require('../../services/admin/accountService');
-const { isAdmin } = require('../../utils/permissionUtils');
+const AdminAccountService = require("../../services/admin/accountService");
+const { isAdmin } = require("../../utils/permissionUtils");
+const ResponseUtils = require("../../utils/responseUtils");
 
 class AdminAccountController {
+  /**
+   * 获取账户信息
+   */
+  static async getAccount(req, res) {
+    try {
+      // 权限验证：只有管理员可以查看账户信息
+      if (!isAdmin(req.user)) {
+        return ResponseUtils.forbidden("权限不足，只有管理员可以查看账户信息");
+      }
+
+      const result = await AdminAccountService.getAccount();
+
+      if (result.success) {
+        return ResponseUtils.success(res, 200, "", result.data);
+      } else {
+        return ResponseUtils.badRequest(result.message);
+      }
+    } catch (error) {
+      console.error("获取账户信息失败:", error);
+      return ResponseUtils.serverError();
+    }
+  }
+
   /**
    * 修改账户信息
    */
@@ -9,20 +33,14 @@ class AdminAccountController {
     try {
       // 权限验证：只有管理员可以修改账户信息
       if (!isAdmin(req.user)) {
-        return res.status(403).json({
-          code: 403,
-          message: '权限不足，只有管理员可以修改账户信息',
-          data: null
-        });
+        return ResponseUtils.forbidden("权限不足，只有管理员可以修改账户信息");
       }
-
-      const { balance, today_cost, account_daily_budget } = req.body;
 
       // 数值类型验证
       const numericFields = {
-        balance: '余额',
-        today_cost: '今日消耗',
-        account_daily_budget: '账户日预算'
+        balance: "余额",
+        today_cost: "今日消耗",
+        account_daily_budget: "账户日预算",
       };
 
       const updateData = {};
@@ -30,11 +48,7 @@ class AdminAccountController {
         const value = req.body[field];
         if (value !== undefined && value !== null) {
           if (isNaN(value) || value < 0) {
-            return res.status(400).json({
-              code: 400,
-              message: `${label}必须为非负数`,
-              data: null
-            });
+            return ResponseUtils.badRequest(`${label}必须为非负数`);
           }
           updateData[field] = parseFloat(value);
         }
@@ -42,38 +56,19 @@ class AdminAccountController {
 
       // 检查是否有需要更新的字段
       if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({
-          code: 400,
-          message: '请提供需要更新的字段',
-          data: null
-        });
+        return ResponseUtils.badRequest("请提供需要更新的字段");
       }
 
       const result = await AdminAccountService.updateAccount(updateData);
 
       if (result.success) {
-        return res.status(200).json({
-          code: 200,
-          message: '账户信息修改成功',
-          data: {
-            account: result.data
-          }
-        });
+        return ResponseUtils.success(res, 200, "账户信息修改成功", result.data);
       } else {
-        return res.status(400).json({
-          code: 400,
-          message: result.message,
-          data: null
-        });
+        return ResponseUtils.badRequest(result.message);
       }
-
     } catch (error) {
-      console.error('修改账户信息失败:', error);
-      return res.status(500).json({
-        code: 500,
-        message: '服务器内部错误',
-        data: null
-      });
+      console.error("修改账户信息失败:", error);
+      return ResponseUtils.serverError();
     }
   }
 }
