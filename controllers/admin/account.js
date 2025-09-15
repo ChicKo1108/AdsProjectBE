@@ -10,7 +10,7 @@ class AdminAccountController {
     try {
       // 权限验证：只有管理员可以查看账户信息
       if (!isAdmin(req.user)) {
-        return ResponseUtils.forbidden("权限不足，只有管理员可以查看账户信息");
+        return ResponseUtils.forbidden(res, "权限不足，只有管理员可以查看账户信息");
       }
 
       const result = await AdminAccountService.getAccount();
@@ -18,11 +18,11 @@ class AdminAccountController {
       if (result.success) {
         return ResponseUtils.success(res, 200, "", result.data);
       } else {
-        return ResponseUtils.badRequest(result.message);
+        return ResponseUtils.badRequest(res, result.message);
       }
     } catch (error) {
       console.error("获取账户信息失败:", error);
-      return ResponseUtils.serverError();
+      return ResponseUtils.serverError(res, "获取账户信息失败");
     }
   }
 
@@ -33,7 +33,7 @@ class AdminAccountController {
     try {
       // 权限验证：只有管理员可以修改账户信息
       if (!isAdmin(req.user)) {
-        return ResponseUtils.forbidden("权限不足，只有管理员可以修改账户信息");
+        return ResponseUtils.forbidden(res, "权限不足，只有管理员可以修改账户信息");
       }
 
       // 数值类型验证
@@ -48,7 +48,7 @@ class AdminAccountController {
         const value = req.body[field];
         if (value !== undefined && value !== null) {
           if (isNaN(value) || value < 0) {
-            return ResponseUtils.badRequest(`${label}必须为非负数`);
+            return ResponseUtils.badRequest(res, `${label}必须为非负数`);
           }
           updateData[field] = parseFloat(value);
         }
@@ -56,7 +56,7 @@ class AdminAccountController {
 
       // 检查是否有需要更新的字段
       if (Object.keys(updateData).length === 0) {
-        return ResponseUtils.badRequest("请提供需要更新的字段");
+        return ResponseUtils.badRequest(res, "请提供需要更新的字段");
       }
 
       const result = await AdminAccountService.updateAccount(updateData);
@@ -64,7 +64,7 @@ class AdminAccountController {
       if (result.success) {
         return ResponseUtils.success(res, 200, "账户信息修改成功", result.data);
       } else {
-        return ResponseUtils.badRequest(result.message);
+        return ResponseUtils.badRequest(res, result.message);
       }
     } catch (error) {
       console.error("修改账户信息失败:", error);

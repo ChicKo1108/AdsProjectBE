@@ -110,6 +110,132 @@ class AuthController {
       return ResponseUtils.serverError(res, 'Token验证失败');
     }
   }
+
+  /**
+   * 修改姓名
+   */
+  static async updateName(req, res) {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      // 检查Authorization header
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return ResponseUtils.unauthorized(res, 'Token格式不正确');
+      }
+
+      // 提取token
+      const token = authHeader.substring(7);
+      
+      if (!token) {
+        return ResponseUtils.unauthorized(res, 'Token不能为空');
+      }
+
+      // 验证token并获取用户信息
+      const tokenResult = await AuthService.verifyToken(token);
+      if (!tokenResult.success) {
+        return ResponseUtils.unauthorized(res, tokenResult.message);
+      }
+
+      const { name } = req.body;
+
+      // 参数验证
+      if (!name || !name.trim()) {
+        return ResponseUtils.badRequest(res, '姓名不能为空');
+      }
+
+      if (name.trim().length > 50) {
+        return ResponseUtils.badRequest(res, '姓名长度不能超过50个字符');
+      }
+
+      // 调用服务层修改姓名
+      const result = await AuthService.updateName(tokenResult.user.id, name.trim());
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      logger.info(`用户 ${tokenResult.user.username} 修改姓名成功`);
+      return ResponseUtils.success(res, 200, '姓名修改成功', {
+        success: true,
+        message: '姓名修改成功'
+      });
+
+    } catch (error) {
+      logger.error(`修改姓名失败: ${error.message}`);
+      return ResponseUtils.serverError(res, '修改姓名失败');
+    }
+  }
+
+  /**
+   * 修改密码
+   */
+  static async updatePassword(req, res) {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      // 检查Authorization header
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return ResponseUtils.unauthorized(res, 'Token格式不正确');
+      }
+
+      // 提取token
+      const token = authHeader.substring(7);
+      
+      if (!token) {
+        return ResponseUtils.unauthorized(res, 'Token不能为空');
+      }
+
+      // 验证token并获取用户信息
+      const tokenResult = await AuthService.verifyToken(token);
+      if (!tokenResult.success) {
+        return ResponseUtils.unauthorized(res, tokenResult.message);
+      }
+
+      const { oldPassword, newPassword, confirmPassword } = req.body;
+
+      // 参数验证
+      if (!oldPassword) {
+        return ResponseUtils.badRequest(res, '原密码不能为空');
+      }
+
+      if (!newPassword) {
+        return ResponseUtils.badRequest(res, '新密码不能为空');
+      }
+
+      if (!confirmPassword) {
+        return ResponseUtils.badRequest(res, '确认密码不能为空');
+      }
+
+      if (newPassword !== confirmPassword) {
+        return ResponseUtils.badRequest(res, '两次输入的密码不一致');
+      }
+
+      if (newPassword.length < 6) {
+        return ResponseUtils.badRequest(res, '新密码长度不能少于6位');
+      }
+
+      if (oldPassword === newPassword) {
+        return ResponseUtils.badRequest(res, '新密码不能与原密码相同');
+      }
+
+      // 调用服务层修改密码
+      const result = await AuthService.updatePassword(tokenResult.user.id, oldPassword, newPassword);
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      logger.info(`用户 ${tokenResult.user.username} 修改密码成功`);
+      return ResponseUtils.success(res, 200, '密码修改成功', {
+        success: true,
+        message: '密码修改成功'
+      });
+
+    } catch (error) {
+      logger.error(`修改密码失败: ${error.message}`);
+      return ResponseUtils.serverError(res, '修改密码失败');
+    }
+  }
 }
 
 module.exports = AuthController;

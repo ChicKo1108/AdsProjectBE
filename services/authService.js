@@ -20,7 +20,7 @@ class AuthService {
       if (!user) {
         return {
           success: false,
-          message: '用户不存在'
+          message: '用户名或密码错误'
         };
       }
 
@@ -29,7 +29,7 @@ class AuthService {
       if (!isMatch) {
         return {
           success: false,
-          message: '密码不正确'
+          message: '用户名或密码错误'
         };
       }
 
@@ -153,6 +153,98 @@ class AuthService {
       return {
         success: false,
         message: '无效的token'
+      };
+    }
+  }
+
+  /**
+   * 修改用户姓名
+   * @param {number} userId - 用户ID
+   * @param {string} name - 新姓名
+   * @returns {Promise<Object>} - 修改结果
+   */
+  static async updateName(userId, name) {
+    try {
+      // 检查用户是否存在
+      const user = await knex('user').where({ id: userId }).first();
+      if (!user) {
+        return {
+          success: false,
+          message: '用户不存在'
+        };
+      }
+
+      // 更新姓名
+      await knex('user')
+        .where({ id: userId })
+        .update({
+          name: name,
+          updated_at: new Date()
+        });
+
+      return {
+        success: true,
+        message: '姓名修改成功'
+      };
+
+    } catch (error) {
+      console.error('修改姓名时发生错误:', error);
+      return {
+        success: false,
+        message: '修改姓名时发生内部错误'
+      };
+    }
+  }
+
+  /**
+   * 修改用户密码
+   * @param {number} userId - 用户ID
+   * @param {string} oldPassword - 原密码
+   * @param {string} newPassword - 新密码
+   * @returns {Promise<Object>} - 修改结果
+   */
+  static async updatePassword(userId, oldPassword, newPassword) {
+    try {
+      // 检查用户是否存在并获取当前密码
+      const user = await knex('user').where({ id: userId }).first();
+      if (!user) {
+        return {
+          success: false,
+          message: '用户不存在'
+        };
+      }
+
+      // 验证原密码
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return {
+          success: false,
+          message: '原密码不正确'
+        };
+      }
+
+      // 加密新密码
+      const saltRounds = 10;
+      const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // 更新密码
+      await knex('user')
+        .where({ id: userId })
+        .update({
+          password: hashedNewPassword,
+          updated_at: new Date()
+        });
+
+      return {
+        success: true,
+        message: '密码修改成功'
+      };
+
+    } catch (error) {
+      console.error('修改密码时发生错误:', error);
+      return {
+        success: false,
+        message: '修改密码时发生内部错误'
       };
     }
   }

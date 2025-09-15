@@ -24,8 +24,8 @@ class AdPlanController {
 
       if (pageSize) {
         const pageSizeNum = parseInt(pageSize);
-        if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 100) {
-          return ResponseUtils.badRequest(res, "每页数量必须是1-100之间的整数");
+        if (isNaN(pageSizeNum) || pageSizeNum < 1) {
+          return ResponseUtils.badRequest(res, "每页数量必须是大于0的整数");
         }
         queryParams.pageSize = pageSizeNum;
       }
@@ -87,32 +87,16 @@ class AdPlanController {
   static async getAdGroupList(req, res) {
     try {
       // 获取查询参数
-      const { page, pageSize, name } = req.query;
+      const { name } = req.query;
 
       // 参数验证
       const queryParams = {};
-
-      if (page) {
-        const pageNum = parseInt(page);
-        if (isNaN(pageNum) || pageNum < 1) {
-          return ResponseUtils.badRequest("页码必须是大于0的整数");
-        }
-        queryParams.page = pageNum;
-      }
-
-      if (pageSize) {
-        const pageSizeNum = parseInt(pageSize);
-        if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 100) {
-          return ResponseUtils.badRequest("每页数量必须是1-100之间的整数");
-        }
-        queryParams.pageSize = pageSizeNum;
-      }
 
       if (name) {
         queryParams.name = name.trim();
       }
 
-      // 调用service获取分页数据
+      // 调用service获取所有数据（不分页）
       const result = await AdPlanService.getAdGroupList(queryParams);
       return ResponseUtils.success(res, 200, "获取成功", result);
 

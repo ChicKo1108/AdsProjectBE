@@ -30,6 +30,7 @@ class AdCreativesService {
     if (name && name.trim()) {
       query = query.orWhere("name", "like", `%${name.trim()}%`);
       query = query.orWhere("display_id", "like", `%${name.trim()}%`);
+      query = query.orWhere("id", "like", `%${name.trim()}%`);
     }
 
     // 添加状态筛选条件
@@ -44,6 +45,7 @@ class AdCreativesService {
     if (name && name.trim()) {
       countQuery = countQuery.orWhere("name", "like", `%${name.trim()}%`);
       countQuery = countQuery.orWhere("display_id", "like", `%${name.trim()}%`);
+      countQuery = countQuery.orWhere("id", "like", `%${name.trim()}%`);
     }
 
     if (status !== undefined && status !== null && status !== "") {

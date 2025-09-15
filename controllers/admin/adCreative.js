@@ -1,5 +1,6 @@
 const AdminAdCreativeService = require('../../services/admin/adCreativeService');
 const { isAdmin } = require('../../utils/permissionUtils');
+const ResponseUtils = require('../../utils/responseUtils');
 
 class AdminAdCreativeController {
   /**
@@ -9,11 +10,7 @@ class AdminAdCreativeController {
     try {
       // 权限验证：只有管理员可以创建广告创意
       if (!isAdmin(req.user)) {
-        return res.status(403).json({
-          code: 403,
-          message: '权限不足，只有管理员可以创建广告创意',
-          data: null
-        });
+        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以创建广告创意');
       }
 
       const {
@@ -24,27 +21,15 @@ class AdminAdCreativeController {
 
       // 参数验证
       if (!name || !name.trim()) {
-        return res.status(400).json({
-          code: 400,
-          message: '广告创意名称不能为空',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '广告创意名称不能为空');
       }
 
       if (!display_id || !display_id.trim()) {
-        return res.status(400).json({
-          code: 400,
-          message: '展示ID不能为空',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '展示ID不能为空');
       }
 
       if (status !== 0 && status !== 1) {
-        return res.status(400).json({
-          code: 400,
-          message: '状态值必须为0或1',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '状态值必须为0或1');
       }
 
       // 数值类型验证
@@ -64,11 +49,7 @@ class AdminAdCreativeController {
       for (const [field, label] of Object.entries(numericFields)) {
         const value = req.body[field];
         if (value !== undefined && value !== null && (isNaN(value) || value < 0)) {
-          return res.status(400).json({
-            code: 400,
-            message: `${label}必须为非负数`,
-            data: null
-          });
+          return ResponseUtils.badRequest(res, `${label}必须为非负数`);
         }
       }
 
@@ -89,28 +70,16 @@ class AdminAdCreativeController {
       });
 
       if (result.success) {
-        return res.status(201).json({
-          code: 201,
-          message: '广告创意创建成功',
-          data: {
-            ad_creative: result.data
-          }
+        return ResponseUtils.created(res, '广告创意创建成功', {
+          ad_creative: result.data
         });
       } else {
-        return res.status(400).json({
-          code: 400,
-          message: result.message,
-          data: null
-        });
+        return ResponseUtils.badRequest(res, result.message);
       }
 
     } catch (error) {
       console.error('创建广告创意失败:', error);
-      return res.status(500).json({
-        code: 500,
-        message: '服务器内部错误',
-        data: null
-      });
+      return ResponseUtils.serverError(res, '服务器内部错误');
     }
   }
 
@@ -121,11 +90,7 @@ class AdminAdCreativeController {
     try {
       // 权限验证：只有管理员可以修改广告创意
       if (!isAdmin(req.user)) {
-        return res.status(403).json({
-          code: 403,
-          message: '权限不足，只有管理员可以修改广告创意',
-          data: null
-        });
+        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以修改广告创意');
       }
 
       const { id } = req.params;
@@ -137,35 +102,19 @@ class AdminAdCreativeController {
 
       // 参数验证
       if (!id || isNaN(parseInt(id))) {
-        return res.status(400).json({
-          code: 400,
-          message: '广告创意ID无效',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '广告创意ID无效');
       }
 
       if (name !== undefined && (!name || !name.trim())) {
-        return res.status(400).json({
-          code: 400,
-          message: '广告创意名称不能为空',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '广告创意名称不能为空');
       }
 
       if (display_id !== undefined && (!display_id || !display_id.trim())) {
-        return res.status(400).json({
-          code: 400,
-          message: '展示ID不能为空',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '展示ID不能为空');
       }
 
       if (status !== undefined && status !== 0 && status !== 1) {
-        return res.status(400).json({
-          code: 400,
-          message: '状态值必须为0或1',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '状态值必须为0或1');
       }
 
       // 数值类型验证
@@ -185,11 +134,7 @@ class AdminAdCreativeController {
       for (const [field, label] of Object.entries(numericFields)) {
         const value = req.body[field];
         if (value !== undefined && value !== null && (isNaN(value) || value < 0)) {
-          return res.status(400).json({
-            code: 400,
-            message: `${label}必须为非负数`,
-            data: null
-          });
+          return ResponseUtils.badRequest(res, `${label}必须为非负数`);
         }
       }
 
@@ -211,28 +156,16 @@ class AdminAdCreativeController {
       const result = await AdminAdCreativeService.updateAdCreative(parseInt(id), updateData);
 
       if (result.success) {
-        return res.status(200).json({
-          code: 200,
-          message: '广告创意修改成功',
-          data: {
-            ad_creative: result.data
-          }
+        return ResponseUtils.success(res, 200, '广告创意修改成功', {
+          ad_creative: result.data
         });
       } else {
-        return res.status(400).json({
-          code: 400,
-          message: result.message,
-          data: null
-        });
+        return ResponseUtils.badRequest(res, result.message);
       }
 
     } catch (error) {
       console.error('修改广告创意失败:', error);
-      return res.status(500).json({
-        code: 500,
-        message: '服务器内部错误',
-        data: null
-      });
+      return ResponseUtils.serverError(res, '服务器内部错误');
     }
   }
 
@@ -243,47 +176,27 @@ class AdminAdCreativeController {
     try {
       // 权限验证：只有管理员可以删除广告创意
       if (!isAdmin(req.user)) {
-        return res.status(403).json({
-          code: 403,
-          message: '权限不足，只有管理员可以删除广告创意',
-          data: null
-        });
+        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以删除广告创意');
       }
 
       const { id } = req.params;
 
       // 参数验证
       if (!id || isNaN(parseInt(id))) {
-        return res.status(400).json({
-          code: 400,
-          message: '广告创意ID无效',
-          data: null
-        });
+        return ResponseUtils.badRequest(res, '广告创意ID无效');
       }
 
       const result = await AdminAdCreativeService.deleteAdCreative(parseInt(id));
 
       if (result.success) {
-        return res.status(200).json({
-          code: 200,
-          message: result.message,
-          data: null
-        });
+        return ResponseUtils.success(res, 200, result.message);
       } else {
-        return res.status(400).json({
-          code: 400,
-          message: result.message,
-          data: null
-        });
+        return ResponseUtils.badRequest(res, result.message);
       }
 
     } catch (error) {
       console.error('删除广告创意失败:', error);
-      return res.status(500).json({
-        code: 500,
-        message: '服务器内部错误',
-        data: null
-      });
+      return ResponseUtils.serverError(res, '服务器内部错误');
     }
   }
 }

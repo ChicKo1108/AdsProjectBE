@@ -278,6 +278,170 @@ class AdminAdPlanService {
   }
 
   /**
+   * 批量绑定广告计划到广告组
+   * @param {Array} adPlanIds - 广告计划ID数组
+   * @param {Array} adGroupIds - 广告组ID数组
+   * @returns {Promise<Object>} 绑定结果
+   */
+  static async batchBindAdPlansToAdGroups(adPlanIds, adGroupIds) {
+    const trx = await knex.transaction();
+    
+    try {
+      // 检查广告计划是否都存在
+      const existingAdPlans = await trx('ad_plan').whereIn('id', adPlanIds);
+      const existingAdPlanIds = existingAdPlans.map(plan => plan.id);
+      const missingAdPlanIds = adPlanIds.filter(id => !existingAdPlanIds.includes(id));
+      
+      if (missingAdPlanIds.length > 0) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: `广告计划不存在: ${missingAdPlanIds.join(', ')}`
+        };
+      }
+
+      // 检查广告组是否都存在
+      const existingAdGroups = await trx('ad_group').whereIn('id', adGroupIds);
+      const existingAdGroupIds = existingAdGroups.map(group => group.id);
+      const missingAdGroupIds = adGroupIds.filter(id => !existingAdGroupIds.includes(id));
+      
+      if (missingAdGroupIds.length > 0) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: `广告组不存在: ${missingAdGroupIds.join(', ')}`
+        };
+      }
+
+      // 获取已存在的绑定关系
+      const existingBindings = await trx('ad_plan_ad_group')
+        .whereIn('ad_plan_id', adPlanIds)
+        .whereIn('ad_group_id', adGroupIds);
+      
+      // 创建所有可能的绑定关系
+      const allPossibleBindings = [];
+      adPlanIds.forEach(planId => {
+        adGroupIds.forEach(groupId => {
+          allPossibleBindings.push({ ad_plan_id: planId, ad_group_id: groupId });
+        });
+      });
+
+      // 过滤出需要新建的绑定关系
+      const newBindings = allPossibleBindings.filter(binding => {
+        return !existingBindings.some(existing => 
+          existing.ad_plan_id === binding.ad_plan_id && 
+          existing.ad_group_id === binding.ad_group_id
+        );
+      });
+
+      let boundCount = 0;
+      
+      // 如果有新的绑定关系，则批量插入
+      if (newBindings.length > 0) {
+        const bindingData = newBindings.map(binding => ({
+          ad_plan_id: binding.ad_plan_id,
+          ad_group_id: binding.ad_group_id,
+          created_at: new Date(),
+          updated_at: new Date()
+        }));
+
+        await trx('ad_plan_ad_group').insert(bindingData);
+        boundCount = newBindings.length;
+      }
+
+      await trx.commit();
+
+      return {
+        success: true,
+        bound_count: boundCount,
+        details: {
+          total_possible: allPossibleBindings.length,
+          already_bound: existingBindings.length,
+          newly_bound: boundCount,
+          ad_plan_count: adPlanIds.length,
+          ad_group_count: adGroupIds.length
+        },
+        message: boundCount > 0 
+          ? `成功创建 ${boundCount} 个新的绑定关系${existingBindings.length > 0 ? `，${existingBindings.length} 个关系已存在` : ''}` 
+          : '所有绑定关系已存在'
+      };
+
+    } catch (error) {
+      await trx.rollback();
+      console.error('批量绑定广告计划到广告组失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解绑广告计划
+   * @param {number} adPlanId - 广告计划ID
+   * @param {number} adGroupId - 广告组ID
+   * @returns {Promise<Object>} 解绑结果
+   */
+  static async unbindAdPlan(adPlanId, adGroupId) {
+    const trx = await knex.transaction();
+    
+    try {
+      // 检查广告计划是否存在
+      const existingAdPlan = await trx('ad_plan').where('id', adPlanId).first();
+      if (!existingAdPlan) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: '广告计划不存在'
+        };
+      }
+
+      // 检查广告组是否存在
+      const existingAdGroup = await trx('ad_group').where('id', adGroupId).first();
+      if (!existingAdGroup) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: '广告组不存在'
+        };
+      }
+
+      // 检查绑定关系是否存在
+      const existingBinding = await trx('ad_plan_ad_group')
+        .where({
+          ad_plan_id: adPlanId,
+          ad_group_id: adGroupId
+        })
+        .first();
+
+      if (!existingBinding) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: '广告计划与广告组之间不存在绑定关系'
+        };
+      }
+
+      // 删除绑定关系
+      await trx('ad_plan_ad_group')
+        .where({
+          ad_plan_id: adPlanId,
+          ad_group_id: adGroupId
+        })
+        .del();
+
+      await trx.commit();
+
+      return {
+        success: true,
+        message: `成功解绑广告计划 ${adPlanId} 与广告组 ${adGroupId} 的关系`
+      };
+
+    } catch (error) {
+      await trx.rollback();
+      console.error('解绑广告计划失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 删除广告计划
    * @param {number} adPlanId - 广告计划ID
    * @returns {Promise<Object>} 删除结果
@@ -392,6 +556,175 @@ class AdminAdPlanService {
       return {
         success: false,
         message: '删除广告组失败'
+      };
+    }
+  }
+
+  /**
+   * 创建广告组
+   * @param {Object} adGroupData - 广告组数据
+   * @returns {Promise<Object>} 创建结果
+   */
+  static async createAdGroup(adGroupData) {
+    try {
+      // 检查广告组名称是否已存在
+      const existingAdGroup = await knex('ad_group')
+        .where('name', adGroupData.name)
+        .first();
+
+      if (existingAdGroup) {
+        return {
+          success: false,
+          message: '广告组名称已存在'
+        };
+      }
+
+      // 创建广告组数据
+      const newAdGroupData = {
+        ...adGroupData,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      // 插入广告组到数据库
+      const [adGroupId] = await knex('ad_group').insert(newAdGroupData);
+
+      // 获取创建的广告组信息
+      const createdAdGroup = await knex('ad_group')
+        .where('id', adGroupId)
+        .first();
+
+      return {
+        success: true,
+        ad_group: createdAdGroup
+      };
+
+    } catch (error) {
+      console.error('创建广告组时发生错误:', error);
+      return {
+        success: false,
+        message: '创建广告组时发生内部错误'
+      };
+    }
+  }
+
+  /**
+   * 修改广告组
+   * @param {number} adGroupId - 广告组ID
+   * @param {Object} updateData - 更新数据
+   * @returns {Promise<Object>} 修改结果
+   */
+  static async updateAdGroup(adGroupId, updateData) {
+    const trx = await knex.transaction();
+    
+    try {
+      // 检查广告组是否存在
+      const existingAdGroup = await trx('ad_group').where('id', adGroupId).first();
+      if (!existingAdGroup) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: '广告组不存在'
+        };
+      }
+
+      // 如果要修改名称，检查新名称是否已被其他广告组使用
+      if (updateData.name && updateData.name !== existingAdGroup.name) {
+        const duplicateAdGroup = await trx('ad_group')
+          .where('name', updateData.name)
+          .where('id', '!=', adGroupId)
+          .first();
+        
+        if (duplicateAdGroup) {
+          await trx.rollback();
+          return {
+            success: false,
+            message: '广告组名称已存在'
+          };
+        }
+      }
+
+      // 更新广告组数据
+      const finalUpdateData = {
+        ...updateData,
+        updated_at: new Date()
+      };
+
+      await trx('ad_group')
+        .where('id', adGroupId)
+        .update(finalUpdateData);
+
+      // 获取更新后的广告组信息
+      const updatedAdGroup = await trx('ad_group')
+        .where('id', adGroupId)
+        .first();
+
+      await trx.commit();
+
+      return {
+        success: true,
+        ad_group: updatedAdGroup
+      };
+
+    } catch (error) {
+      await trx.rollback();
+      console.error('修改广告组时发生错误:', error);
+      return {
+        success: false,
+        message: '修改广告组时发生内部错误'
+      };
+    }
+  }
+
+  /**
+   * 删除广告组
+   * @param {number} adGroupId - 广告组ID
+   * @returns {Promise<Object>} 删除结果
+   */
+  static async deleteAdGroup(adGroupId) {
+    const trx = await knex.transaction();
+    
+    try {
+      // 检查广告组是否存在
+      const existingAdGroup = await trx('ad_group').where('id', adGroupId).first();
+      if (!existingAdGroup) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: '广告组不存在'
+        };
+      }
+
+      // 检查是否有广告计划绑定到此广告组
+      const boundAdPlans = await trx('ad_plan_ad_group')
+        .where('ad_group_id', adGroupId)
+        .count('* as count')
+        .first();
+
+      if (boundAdPlans.count > 0) {
+        await trx.rollback();
+        return {
+          success: false,
+          message: `无法删除广告组，还有 ${boundAdPlans.count} 个广告计划绑定到此广告组`
+        };
+      }
+
+      // 删除广告组
+      await trx('ad_group').where('id', adGroupId).del();
+
+      await trx.commit();
+
+      return {
+        success: true,
+        message: `广告组 "${existingAdGroup.name}" 删除成功`
+      };
+
+    } catch (error) {
+      await trx.rollback();
+      console.error('删除广告组时发生错误:', error);
+      return {
+        success: false,
+        message: '删除广告组时发生内部错误'
       };
     }
   }

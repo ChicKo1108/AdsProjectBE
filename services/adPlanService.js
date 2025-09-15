@@ -8,7 +8,7 @@ class AdPlanService {
    * @param {Object} params 查询参数
    * @param {number} params.page 页码，默认1
    * @param {number} params.pageSize 每页数量，默认10
-   * @param {string} params.name 广告计划名称搜索
+   * @param {string} params.name 广告计划名称和ID搜索
    * @param {number} params.status 状态筛选
    * @returns {Promise<Object>} 分页结果
    */
@@ -18,9 +18,20 @@ class AdPlanService {
     // 构建基础查询
     let query = knex('ad_plan');
     
-    // 按名称搜索
+    // 按名称和ID搜索
     if (name && name.trim()) {
-      query = query.where('name', 'like', `%${name.trim()}%`);
+      const searchTerm = name.trim();
+      const isNumeric = !isNaN(searchTerm) && !isNaN(parseFloat(searchTerm));
+      
+      query = query.where(function() {
+        // 搜索名称（模糊匹配）
+        this.where('name', 'like', `%${searchTerm}%`);
+        
+        // 如果搜索词是数字，也搜索ID（精确匹配）
+        if (isNumeric) {
+          this.orWhere('id', parseInt(searchTerm));
+        }
+      });
     }
     
     // 按状态筛选
@@ -33,7 +44,18 @@ class AdPlanService {
     
     // 添加与主查询相同的筛选条件
     if (name && name.trim()) {
-      countQuery = countQuery.where('name', 'like', `%${name.trim()}%`);
+      const searchTerm = name.trim();
+      const isNumeric = !isNaN(searchTerm) && !isNaN(parseFloat(searchTerm));
+      
+      countQuery = countQuery.where(function() {
+        // 搜索名称（模糊匹配）
+        this.where('name', 'like', `%${searchTerm}%`);
+        
+        // 如果搜索词是数字，也搜索ID（精确匹配）
+        if (isNumeric) {
+          this.orWhere('id', parseInt(searchTerm));
+        }
+      });
     }
     
     if (status !== undefined && status !== null && status !== '') {
@@ -97,8 +119,8 @@ class AdPlanService {
         'ad_plan.ecpm',
         'ad_plan.download_per_count',
         'ad_plan.download_rate',
-        'ad_plan.start_date',
-        'ad_plan.end_date'
+        'ad_plan.created_at',
+        'ad_plan.updated_at'
       );
 
     // 构造响应数据
@@ -118,39 +140,37 @@ class AdPlanService {
   }
 
   /**
-   * 获取广告组列表（支持分页和搜索）
+   * 获取广告组列表（支持搜索）
    * @param {Object} params - 查询参数
-   * @param {number} params.page - 页码，默认为1
-   * @param {number} params.pageSize - 每页数量，默认为10
-   * @param {string} params.name - 广告组名称搜索关键词
-   * @returns {Promise<Object>} 分页的广告组列表
+   * @param {string} params.name - 搜索关键词，同时搜索ID和名称
+   * @returns {Promise<Object>} 广告组列表
    */
   static async getAdGroupList(params = {}) {
-    const { page = 1, pageSize = 10, name } = params;
-    const offset = (page - 1) * pageSize;
+    const { name } = params;
 
     // 构建基础查询
     let query = knex('ad_group')
       .select('id', 'name')
       .orderBy('id', 'desc');
 
-    // 添加名称搜索条件
+    // 添加搜索条件（同时搜索ID和名称）
     if (name && name.trim()) {
-      query = query.where('name', 'like', `%${name.trim()}%`);
+      const searchTerm = name.trim();
+      const isNumeric = !isNaN(searchTerm) && !isNaN(parseFloat(searchTerm));
+      
+      query = query.where(function() {
+        // 搜索名称（模糊匹配）
+        this.where('name', 'like', `%${searchTerm}%`);
+        
+        // 如果搜索词是数字，也搜索ID（精确匹配）
+        if (isNumeric) {
+          this.orWhere('id', parseInt(searchTerm));
+        }
+      });
     }
 
-    // 获取总数 - 重新构建查询以避免GROUP BY错误
-    let countQuery = knex('ad_group');
-    
-    // 添加与主查询相同的筛选条件
-    if (name && name.trim()) {
-      countQuery = countQuery.where('name', 'like', `%${name.trim()}%`);
-    }
-    
-    const [{ total }] = await countQuery.count('* as total');
-
-    // 执行分页查询
-    const adGroups = await query.limit(pageSize).offset(offset);
+    // 执行查询获取所有数据
+    const adGroups = await query;
 
     // 获取广告组关联的广告计划
     const adGroupIds = adGroups.map(group => group.id);
@@ -180,8 +200,8 @@ class AdPlanService {
           'ad_plan.ecpm',
           'ad_plan.download_per_count',
           'ad_plan.download_rate',
-          'ad_plan.start_date',
-          'ad_plan.end_date'
+          'ad_plan.created_at',
+          'ad_plan.updated_at'
         );
     }
 
@@ -198,18 +218,8 @@ class AdPlanService {
       };
     });
 
-    const totalPages = Math.ceil(total / pageSize);
-
     return {
-      ad_groups: result,
-      pagination: {
-        page,
-        pageSize,
-        total: parseInt(total),
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+      ad_groups: result
     };
   }
 }

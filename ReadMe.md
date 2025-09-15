@@ -31,6 +31,30 @@
   - valid: boolean
   - user: object
 
+#### 修改姓名
+- url: /api/auth/update-name
+- method: POST
+- headers:
+  - Authorization: Bearer <token>
+- params:
+  - name: string
+- response:
+  - success: boolean
+  - message: string
+
+#### 修改密码
+- url: /api/auth/update-password
+- method: POST
+- headers:
+  - Authorization: Bearer <token>
+- params:
+  - oldPassword: string
+  - newPassword: string
+  - confirmPassword: string
+- response:
+  - success: boolean
+  - message: string
+
 ### 用户端
 
 #### 首页信息接口
@@ -277,6 +301,44 @@
 - response:
   - message: string
 
+#### 新建广告组
+- url: /api/admin/ad-plans/ad-groups
+- method: POST
+- auth: admin required
+- params:
+  - name: string
+- response:
+  - ad_group: object
+
+#### 修改广告组
+- url: /api/admin/ad-plans/ad-groups/:id
+- method: PUT
+- auth: admin required
+- params:
+  - name: string
+- response:
+  - ad_group: object
+
+#### 将多个广告计划添加到广告组
+- url: /api/admin/ad-plans/bind
+- method: POST
+- auth: admin required
+- params:
+  - ad_plan_ids: number[]
+  - ad_group_ids: number[]
+- response:
+  - message: string
+
+#### 解绑广告计划
+- url: /api/admin/ad-plans/bind
+- method: DELETE
+- auth: admin required
+- params:
+  - ad_plan_id: number
+  - ad_group_id: number
+- response:
+  - message: string
+
 #### 绑定广告组
 - url: /api/admin/ad-plans/:id/ad-groups
 - method: POST
@@ -288,7 +350,7 @@
 
 #### 删除广告组
 如果广告组中还有广告计划则不能删除
-- url: /api/admin/ad-plans/:id/ad-groups
+- url: /api/admin/ad-plans/ad-groups/:id
 - method: DELETE
 - auth: admin required
 - response:

@@ -6,7 +6,6 @@ const {
   isValidEnumValue,
 } = require("../../utils/constants");
 const ResponseUtils = require("../../utils/responseUtils");
-const { log } = require("../../logger");
 
 class AdminAdPlanController {
   /**
@@ -320,6 +319,104 @@ class AdminAdPlanController {
   }
 
   /**
+   * 批量绑定广告计划到广告组
+   */
+  static async batchBindAdPlansToAdGroups(req, res) {
+    try {
+      // 权限验证：管理员可以批量绑定
+      if (!isAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，需要管理员权限');
+      }
+
+      const { ad_plan_ids, ad_group_ids } = req.body;
+
+      // 参数验证
+      if (!Array.isArray(ad_plan_ids) || ad_plan_ids.length === 0) {
+        return ResponseUtils.badRequest(res, '广告计划ID列表不能为空且必须为数组格式');
+      }
+
+      if (!Array.isArray(ad_group_ids) || ad_group_ids.length === 0) {
+        return ResponseUtils.badRequest(res, '广告组ID列表不能为空且必须为数组格式');
+      }
+
+      // 验证广告计划ID格式
+      const invalidPlanIds = ad_plan_ids.filter(
+        (planId) => !Number.isInteger(planId) || planId <= 0
+      );
+      if (invalidPlanIds.length > 0) {
+        return ResponseUtils.badRequest(
+          res,
+          '广告计划ID列表包含无效值: ' + invalidPlanIds.join(', ')
+        );
+      }
+
+      // 验证广告组ID格式
+      const invalidGroupIds = ad_group_ids.filter(
+        (groupId) => !Number.isInteger(groupId) || groupId <= 0
+      );
+      if (invalidGroupIds.length > 0) {
+        return ResponseUtils.badRequest(
+          res,
+          '广告组ID列表包含无效值: ' + invalidGroupIds.join(', ')
+        );
+      }
+
+      // 调用服务层批量绑定
+      const result = await AdminAdPlanService.batchBindAdPlansToAdGroups(
+        ad_plan_ids,
+        ad_group_ids
+      );
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      return ResponseUtils.success(res, 200, '批量绑定成功', {
+        bound_count: result.bound_count,
+        details: result.details
+      });
+    } catch (error) {
+      console.error('批量绑定广告计划到广告组失败:', error);
+      return ResponseUtils.serverError(res, '服务器内部错误');
+    }
+  }
+
+  /**
+   * 解绑广告计划
+   */
+  static async unbindAdPlan(req, res) {
+    try {
+      // 权限验证：管理员可以解绑广告计划
+      if (!isAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，需要管理员权限');
+      }
+
+      const { ad_plan_id, ad_group_id } = req.body;
+
+      // 参数验证
+      if (!ad_plan_id || !Number.isInteger(ad_plan_id) || ad_plan_id <= 0) {
+        return ResponseUtils.badRequest(res, '广告计划ID无效');
+      }
+
+      if (!ad_group_id || !Number.isInteger(ad_group_id) || ad_group_id <= 0) {
+        return ResponseUtils.badRequest(res, '广告组ID无效');
+      }
+
+      // 调用服务层解绑
+      const result = await AdminAdPlanService.unbindAdPlan(ad_plan_id, ad_group_id);
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      return ResponseUtils.success(res, 200, result.message);
+    } catch (error) {
+      console.error('解绑广告计划失败:', error);
+      return ResponseUtils.serverError(res, '服务器内部错误');
+    }
+  }
+
+  /**
    * 删除广告计划
    */
   static async deleteAdPlan(req, res) {
@@ -391,6 +488,112 @@ class AdminAdPlanController {
     } catch (error) {
       console.error("删除广告组失败:", error);
       return ResponseUtils.serverError(res, );
+    }
+  }
+
+  /**
+   * 新建广告组
+   */
+  static async createAdGroup(req, res) {
+    try {
+      // 权限验证：只有管理员可以创建广告组
+      if (!isAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以创建广告组');
+      }
+
+      const { name } = req.body;
+
+      // 参数验证
+      if (!name || !name.trim()) {
+        return ResponseUtils.badRequest(res, '广告组名称不能为空');
+      }
+
+      // 调用服务层创建广告组
+      const result = await AdminAdPlanService.createAdGroup({
+        name: name.trim()
+      });
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      return ResponseUtils.created(res, '广告组创建成功', {
+        ad_group: result.ad_group
+      });
+    } catch (error) {
+      console.error('创建广告组失败:', error);
+      return ResponseUtils.serverError(res, '服务器内部错误');
+    }
+  }
+
+  /**
+   * 修改广告组
+   */
+  static async updateAdGroup(req, res) {
+    try {
+      // 权限验证：只有管理员可以修改广告组
+      if (!isAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以修改广告组');
+      }
+
+      const { id } = req.params;
+      const { name } = req.body;
+
+      // 参数验证
+      if (!id || isNaN(parseInt(id))) {
+        return ResponseUtils.badRequest(res, '广告组ID无效');
+      }
+
+      if (!name || !name.trim()) {
+        return ResponseUtils.badRequest(res, '广告组名称不能为空');
+      }
+
+      // 调用服务层修改广告组
+      const result = await AdminAdPlanService.updateAdGroup(parseInt(id), {
+        name: name.trim()
+      });
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      return ResponseUtils.success(res, 200, '广告组修改成功', {
+        ad_group: result.ad_group
+      });
+    } catch (error) {
+      console.error('修改广告组失败:', error);
+      return ResponseUtils.serverError(res, '服务器内部错误');
+    }
+  }
+
+  /**
+   * 删除广告组
+   */
+  static async deleteAdGroup(req, res) {
+    try {
+      // 权限验证：只有管理员可以删除广告组
+      if (!isAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以删除广告组');
+      }
+
+      const { id } = req.params;
+
+      // 参数验证
+      if (!id || isNaN(parseInt(id))) {
+        return ResponseUtils.badRequest(res, '广告组ID无效');
+      }
+
+      // 调用服务层删除广告组
+      const result = await AdminAdPlanService.deleteAdGroup(parseInt(id));
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      return ResponseUtils.success(res, 200, result.message);
+    } catch (error) {
+      console.error('删除广告组失败:', error);
+      return ResponseUtils.serverError(res, '服务器内部错误');
     }
   }
 }
