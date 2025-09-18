@@ -56,6 +56,16 @@ app.use((req, res, next) => {
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 健康检查路由
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Service is healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 app.use('/', indexRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);

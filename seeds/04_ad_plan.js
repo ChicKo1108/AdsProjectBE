@@ -7,15 +7,15 @@ exports.seed = async function(knex) {
   await knex('ad_plan').del();
   
   // 插入测试数据
-  // target: mobile_app, game, ecommerce, education, finance
-  // price_stratagy: auto_bid, manual_bid
+  // target: app, web, quick_app, mini_app, download
+  // price_stratagy: stable_cost, max_conversion, optimal_cost
   await knex('ad_plan').insert([
     {
       id: 1,
       name: '春季促销广告计划',
       plan_type: 'CPC',
-      target: 'mobile_app',
-      price_stratagy: 'auto_bid',
+      target: 'app',
+      price_stratagy: 'stable_cost',
       placement_type: 'feed',
       status: 1,
       chuang_yi_you_xuan: 0,
@@ -38,8 +38,8 @@ exports.seed = async function(knex) {
       id: 2,
       name: '夏季游戏推广计划',
       plan_type: 'CPM',
-      target: 'game',
-      price_stratagy: 'manual_bid',
+      target: 'app',
+      price_stratagy: 'max_conversion',
       placement_type: 'banner',
       status: 1,
       chuang_yi_you_xuan: 1,
@@ -62,8 +62,8 @@ exports.seed = async function(knex) {
       id: 3,
       name: '电商双11预热计划',
       plan_type: 'CPA',
-      target: 'ecommerce',
-      price_stratagy: 'auto_bid',
+      target: 'web',
+      price_stratagy: 'optimal_cost',
       placement_type: 'interstitial',
       status: 0,
       chuang_yi_you_xuan: 0,
