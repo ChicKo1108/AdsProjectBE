@@ -1,6 +1,7 @@
-const Account = require('../models/account');
-const AdPlan = require('../models/adPlan');
-const AdCreatives = require('../models/adCreatives');
+const Account = require("../models/account");
+const AdPlan = require("../models/adPlan");
+const AdCreatives = require("../models/adCreatives");
+const ResponseUtils = require("../utils/responseUtils");
 
 class HomeController {
   /**
@@ -9,26 +10,29 @@ class HomeController {
    */
   static async getHomeInfo(req, res) {
     try {
-      // 获取账户信息（假设用户只有一个账户，取第一个）
-      const accounts = await Account.all();
-      const account = accounts.length > 0 ? accounts[0] : null;
-      
+      const { accountId } = req.query;
+      let account = null;
+      let adPlans = [];
+      let adCreatives = [];
+      if (!accountId) {
+        return ResponseUtils.forbidden();
+      }
+      // 如果提供了accountId，获取指定账户信息
+      account = await Account.findById(accountId);
       if (!account) {
-        return res.status(404).json({
-          success: false,
-          message: '账户信息不存在'
-        });
+        return ResponseUtils.notFound(res, "指定的账户不存在");
       }
 
-      // 获取时间倒序前五条广告计划
-      const adPlansQuery = await AdPlan.all();
-      const adPlans = adPlansQuery
+      // 根据账户ID获取对应的广告计划和创意
+      const accountAdPlans = await AdPlan.findByAccountId(accountId);
+      const accountAdCreatives = await AdCreatives.findByAccountId(accountId);
+
+      // 按创建时间倒序排列，取前5条
+      adPlans = accountAdPlans
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 5);
 
-      // 获取时间倒序前五条广告创意
-      const adCreativesQuery = await AdCreatives.all();
-      const adCreatives = adCreativesQuery
+      adCreatives = accountAdCreatives
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 5);
 
@@ -39,18 +43,10 @@ class HomeController {
         adCreatives,
       };
 
-      res.json({
-        success: true,
-        data: responseData
-      });
-
+      return ResponseUtils.success(res, 200, "获取首页信息成功", responseData);
     } catch (error) {
-      console.error('获取首页信息失败:', error);
-      res.status(500).json({
-        success: false,
-        message: '服务器内部错误',
-        error: error.message
-      });
+      console.error("获取首页信息失败:", error);
+      return ResponseUtils.serverError(res, "获取首页信息失败");
     }
   }
 }

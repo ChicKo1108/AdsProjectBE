@@ -1,5 +1,5 @@
 const AdminAdCreativeService = require('../../services/admin/adCreativeService');
-const { isAdmin } = require('../../utils/permissionUtils');
+const { isAdmin, checkAdCreativesFieldPermissions } = require('../../utils/permissionUtils');
 const ResponseUtils = require('../../utils/responseUtils');
 
 class AdminAdCreativeController {
@@ -8,16 +8,26 @@ class AdminAdCreativeController {
    */
   static async createAdCreative(req, res) {
     try {
-      // 权限验证：只有管理员可以创建广告创意
-      if (!isAdmin(req.user)) {
-        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以创建广告创意');
+      // 权限验证：需要ad_operator或site_admin权限
+      if (!req.user || (req.user.role !== 'ad_operator' && req.user.role !== 'site_admin')) {
+        return ResponseUtils.forbidden(res, '权限不足，需要广告操作员或站点管理员权限');
       }
 
       const {
         name, display_id, status, budget, download_cost, click_cost,
         costs, download_count, download_rate, ecpm, display_count,
-        click_count, click_rate
+        click_count, click_rate, accountId
       } = req.body;
+
+      // 检查字段级权限
+      const requestedFields = Object.keys(req.body);
+      const permissionCheck = checkAdCreativesFieldPermissions(req.user, requestedFields);
+      
+      if (!permissionCheck.hasPermission) {
+        return ResponseUtils.forbidden(res, 
+          `权限不足，无法设置以下字段: ${permissionCheck.restrictedFields.join(', ')}`
+        );
+      }
 
       // 参数验证
       if (!name || !name.trim()) {
@@ -30,6 +40,11 @@ class AdminAdCreativeController {
 
       if (status !== 0 && status !== 1) {
         return ResponseUtils.badRequest(res, '状态值必须为0或1');
+      }
+
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, '账户ID必须是数字');
       }
 
       // 数值类型验证
@@ -53,21 +68,33 @@ class AdminAdCreativeController {
         }
       }
 
-      const result = await AdminAdCreativeService.createAdCreative({
+      // 构建创建数据，只包含用户有权限设置的字段
+      const createData = {
         name: name.trim(),
         display_id: display_id.trim(),
         status,
-        budget,
-        download_cost,
-        click_cost,
-        costs,
-        download_count,
-        download_rate,
-        ecpm,
-        display_count,
-        click_count,
-        click_rate
-      });
+        budget
+      };
+
+      // 添加accountId到创建数据
+      if (accountId) {
+        createData.account_id = parseInt(accountId);
+      }
+
+      // 只有site_admin可以设置统计字段
+      if (req.user.role === 'site_admin') {
+        if (download_cost !== undefined) createData.download_cost = download_cost;
+        if (click_cost !== undefined) createData.click_cost = click_cost;
+        if (costs !== undefined) createData.costs = costs;
+        if (download_count !== undefined) createData.download_count = download_count;
+        if (download_rate !== undefined) createData.download_rate = download_rate;
+        if (ecpm !== undefined) createData.ecpm = ecpm;
+        if (display_count !== undefined) createData.display_count = display_count;
+        if (click_count !== undefined) createData.click_count = click_count;
+        if (click_rate !== undefined) createData.click_rate = click_rate;
+      }
+
+      const result = await AdminAdCreativeService.createAdCreative(createData);
 
       if (result.success) {
         return ResponseUtils.created(res, '广告创意创建成功', {
@@ -88,21 +115,36 @@ class AdminAdCreativeController {
    */
   static async updateAdCreative(req, res) {
     try {
-      // 权限验证：只有管理员可以修改广告创意
-      if (!isAdmin(req.user)) {
-        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以修改广告创意');
+      // 权限验证：需要ad_operator或site_admin权限
+      if (!req.user || (req.user.role !== 'ad_operator' && req.user.role !== 'site_admin')) {
+        return ResponseUtils.forbidden(res, '权限不足，需要广告操作员或站点管理员权限');
       }
 
       const { id } = req.params;
       const {
         name, display_id, status, budget, download_cost, click_cost,
         costs, download_count, download_rate, ecpm, display_count,
-        click_count, click_rate
+        click_count, click_rate, accountId
       } = req.body;
 
       // 参数验证
       if (!id || isNaN(parseInt(id))) {
         return ResponseUtils.badRequest(res, '广告创意ID无效');
+      }
+
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, '账户ID必须是数字');
+      }
+
+      // 检查字段级权限
+      const requestedFields = Object.keys(req.body);
+      const permissionCheck = checkAdCreativesFieldPermissions(req.user, requestedFields);
+      
+      if (!permissionCheck.hasPermission) {
+        return ResponseUtils.forbidden(res, 
+          `权限不足，无法修改以下字段: ${permissionCheck.restrictedFields.join(', ')}`
+        );
       }
 
       if (name !== undefined && (!name || !name.trim())) {
@@ -138,20 +180,32 @@ class AdminAdCreativeController {
         }
       }
 
+      // 构建更新数据，只包含用户有权限修改的字段
       const updateData = {};
+      
+      // ad_operator和site_admin都可以修改的字段
       if (name !== undefined) updateData.name = name.trim();
       if (display_id !== undefined) updateData.display_id = display_id.trim();
       if (status !== undefined) updateData.status = status;
       if (budget !== undefined) updateData.budget = budget;
-      if (download_cost !== undefined) updateData.download_cost = download_cost;
-      if (click_cost !== undefined) updateData.click_cost = click_cost;
-      if (costs !== undefined) updateData.costs = costs;
-      if (download_count !== undefined) updateData.download_count = download_count;
-      if (download_rate !== undefined) updateData.download_rate = download_rate;
-      if (ecpm !== undefined) updateData.ecpm = ecpm;
-      if (display_count !== undefined) updateData.display_count = display_count;
-      if (click_count !== undefined) updateData.click_count = click_count;
-      if (click_rate !== undefined) updateData.click_rate = click_rate;
+
+      // 添加accountId到更新数据
+      if (accountId) {
+        updateData.account_id = parseInt(accountId);
+      }
+
+      // 只有site_admin可以修改的统计字段
+      if (req.user.role === 'site_admin') {
+        if (download_cost !== undefined) updateData.download_cost = download_cost;
+        if (click_cost !== undefined) updateData.click_cost = click_cost;
+        if (costs !== undefined) updateData.costs = costs;
+        if (download_count !== undefined) updateData.download_count = download_count;
+        if (download_rate !== undefined) updateData.download_rate = download_rate;
+        if (ecpm !== undefined) updateData.ecpm = ecpm;
+        if (display_count !== undefined) updateData.display_count = display_count;
+        if (click_count !== undefined) updateData.click_count = click_count;
+        if (click_rate !== undefined) updateData.click_rate = click_rate;
+      }
 
       const result = await AdminAdCreativeService.updateAdCreative(parseInt(id), updateData);
 
@@ -180,13 +234,19 @@ class AdminAdCreativeController {
       }
 
       const { id } = req.params;
+      const { accountId } = req.query;
 
       // 参数验证
       if (!id || isNaN(parseInt(id))) {
         return ResponseUtils.badRequest(res, '广告创意ID无效');
       }
 
-      const result = await AdminAdCreativeService.deleteAdCreative(parseInt(id));
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, '账户ID必须是数字');
+      }
+
+      const result = await AdminAdCreativeService.deleteAdCreative(parseInt(id), accountId ? parseInt(accountId) : null);
 
       if (result.success) {
         return ResponseUtils.success(res, 200, result.message);

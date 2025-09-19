@@ -447,8 +447,6 @@
 - ecpm: number // ECPM
 - download_per_count: number // 下载均价
 - download_rate: number // 下载率
-- start_date: Date
-- end_date: Date
 - status: number
 
 #### AdCreatives

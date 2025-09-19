@@ -61,24 +61,26 @@ class AdminAccountService {
 
   /**
    * 获取账户信息
+   * @param {number} accountId - 账户ID
    * @returns {Promise<Object>} 查询结果
    */
-  static async getAccount() {
+  static async getAccount(accountId) {
     try {
-      let account = await knex('account').first();
+      // 验证accountId参数
+      if (!accountId || isNaN(accountId)) {
+        return {
+          success: false,
+          message: '无效的账户ID'
+        };
+      }
+
+      let account = await knex('account').where('id', accountId).first();
       
       if (!account) {
-        // 如果不存在账户记录，创建默认账户
-        const defaultAccountData = {
-          balance: 0,
-          today_cost: 0,
-          account_daily_budget: 0,
-          created_at: new Date(),
-          updated_at: new Date()
+        return {
+          success: false,
+          message: '账户不存在'
         };
-        
-        const [accountId] = await knex('account').insert(defaultAccountData);
-        account = await knex('account').where('id', accountId).first();
       }
 
       return {

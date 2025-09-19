@@ -9,7 +9,7 @@ class AdPlanController {
   static async getAdPlanList(req, res) {
     try {
       // 获取查询参数
-      const { page, pageSize, name, status } = req.query;
+      const { page, pageSize, name, status, accountId } = req.query;
 
       // 参数验证
       const queryParams = {};
@@ -42,6 +42,15 @@ class AdPlanController {
         queryParams.status = statusNum;
       }
 
+      // 添加accountId过滤
+      if (accountId) {
+        const accountIdNum = parseInt(accountId);
+        if (isNaN(accountIdNum)) {
+          return ResponseUtils.badRequest(res, "账户ID必须是数字");
+        }
+        queryParams.accountId = accountIdNum;
+      }
+
       // 调用service获取分页数据
       const result = await AdPlanService.getAdPlanList(queryParams);
 
@@ -58,10 +67,16 @@ class AdPlanController {
   static async getAdPlanDetail(req, res) {
     try {
       const { id } = req.params;
+      const { accountId } = req.query;
 
       // 验证ID参数
       if (!id || isNaN(parseInt(id))) {
         return ResponseUtils.badRequest("无效的广告计划ID");
+      }
+
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, "账户ID必须是数字");
       }
 
       // 获取所有广告计划并找到指定ID的计划
@@ -69,6 +84,11 @@ class AdPlanController {
 
       if (!adPlan) {
         return ResponseUtils.notFound("广告计划不存在");
+      }
+
+      // 如果提供了accountId，检查是否匹配
+      if (accountId && adPlan.account_id !== parseInt(accountId)) {
+        return ResponseUtils.notFound(res, "广告计划不存在");
       }
 
       return ResponseUtils.success(res, 200, "获取成功", {
@@ -87,13 +107,22 @@ class AdPlanController {
   static async getAdGroupList(req, res) {
     try {
       // 获取查询参数
-      const { name } = req.query;
+      const { name, accountId } = req.query;
 
       // 参数验证
       const queryParams = {};
 
       if (name) {
         queryParams.name = name.trim();
+      }
+
+      // 添加accountId过滤
+      if (accountId) {
+        const accountIdNum = parseInt(accountId);
+        if (isNaN(accountIdNum)) {
+          return ResponseUtils.badRequest(res, "账户ID必须是数字");
+        }
+        queryParams.accountId = accountIdNum;
       }
 
       // 调用service获取所有数据（不分页）

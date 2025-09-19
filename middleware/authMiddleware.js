@@ -4,7 +4,7 @@ const config = require('../config');
 
 const JWT_SECRET = config.jwt.secret;
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   // 从请求头获取token
   const authHeader = req.header('Authorization');
   if (!authHeader) {
@@ -28,11 +28,28 @@ const authMiddleware = (req, res, next) => {
     const renewThreshold = 24 * 60 * 60; // 1天 = 24小时 * 60分钟 * 60秒
     
     if (timeUntilExpiry < renewThreshold && timeUntilExpiry > 0) {
+      // 生成新token时需要包含最新的账户权限信息
+      let accountPermissions = [];
+      if (decoded.role !== 'super-admin') {
+        // 非超级管理员需要获取其在各个账户中的权限
+        const knex = require('../models/knex');
+        accountPermissions = await knex('user_account')
+          .join('account', 'user_account.account_id', 'account.id')
+          .where('user_account.user_id', decoded.userId)
+          .where('user_account.is_active', true)
+          .select(
+            'account.id as accountId',
+            'account.name as accountName',
+            'user_account.role as accountRole'
+          );
+      }
+
       // 生成新token
       const newPayload = {
         userId: decoded.userId,
         username: decoded.username,
-        role: decoded.role
+        role: decoded.role,
+        accountPermissions: accountPermissions
       };
       const newToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: config.jwt.expiresIn });
       

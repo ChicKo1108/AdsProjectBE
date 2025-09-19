@@ -5,6 +5,10 @@ class Base{
     this.table = props;
   }
 
+  query () {
+    return knex(this.table);
+  }
+
   // 查找
   all (){
     return knex(this.table).select();

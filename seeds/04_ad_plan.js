@@ -31,6 +31,7 @@ exports.seed = async function(knex) {
       download_rate: 18.89,
       start_date: new Date('2024-03-01'),
       end_date: new Date('2024-03-31'),
+      account_id: 1,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -55,6 +56,7 @@ exports.seed = async function(knex) {
       download_rate: 15.0,
       start_date: new Date('2024-06-01'),
       end_date: new Date('2024-08-31'),
+      account_id: 2,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -79,6 +81,7 @@ exports.seed = async function(knex) {
       download_rate: 0.0,
       start_date: new Date('2024-10-15'),
       end_date: new Date('2024-11-15'),
+      account_id: 3,
       created_at: new Date(),
       updated_at: new Date()
     }

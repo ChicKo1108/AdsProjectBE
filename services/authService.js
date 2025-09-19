@@ -33,11 +33,27 @@ class AuthService {
         };
       }
 
+      // 获取用户的账户权限信息
+      let accountPermissions = [];
+      if (user.role !== 'super-admin') {
+        // 非超级管理员需要获取其在各个账户中的权限
+        accountPermissions = await knex('user_account')
+          .join('account', 'user_account.account_id', 'account.id')
+          .where('user_account.user_id', user.id)
+          .where('user_account.is_active', true)
+          .select(
+            'account.id as accountId',
+            'account.name as accountName',
+            'user_account.role as accountRole'
+          );
+      }
+
       // 生成JWT token
       const payload = {
         userId: user.id,
         username: user.username,
-        role: user.role || 'user'
+        role: user.role || 'user',
+        accountPermissions: accountPermissions
       };
       
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: config.jwt.expiresIn });
@@ -49,7 +65,8 @@ class AuthService {
           id: user.id,
           username: user.username,
           name: user.name,
-          role: user.role || 'user'
+          role: user.role || 'user',
+          accountPermissions: accountPermissions
         }
       };
 

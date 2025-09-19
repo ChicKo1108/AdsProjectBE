@@ -1,5 +1,5 @@
 const AdminAdPlanService = require("../../services/admin/adPlanService");
-const { isAdmin } = require("../../utils/permissionUtils");
+const { isAdmin, checkFieldPermissions } = require("../../utils/permissionUtils");
 const {
   AD_PLAN_ENUMS,
   getEnumValues,
@@ -10,12 +10,14 @@ const ResponseUtils = require("../../utils/responseUtils");
 class AdminAdPlanController {
   /**
    * 新建广告计划
+   * ad_operator可以创建广告计划，但只能设置基本字段
+   * site_admin可以设置所有字段
    */
   static async createAdPlan(req, res) {
     try {
-      // 权限验证：只有超级管理员可以创建广告计划
-      if (!isAdmin(req.user)) {
-        return ResponseUtils.forbidden(res, "权限不足，只有管理员可以创建广告计划");
+      // 权限验证：需要ad_operator或site_admin权限
+      if (!req.user || (req.user.role !== 'ad_operator' && req.user.role !== 'site_admin')) {
+        return ResponseUtils.forbidden(res, "权限不足，需要广告操作员或站点管理员权限");
       }
 
       const {
@@ -38,7 +40,18 @@ class AdminAdPlanController {
         download_rate,
         start_date,
         end_date,
+        accountId,
       } = req.body;
+
+      // 检查字段级权限
+      const requestedFields = Object.keys(req.body);
+      const permissionCheck = checkFieldPermissions(req.user, requestedFields);
+      
+      if (!permissionCheck.hasPermission) {
+        return ResponseUtils.forbidden(res, 
+          `权限不足，无法设置以下字段: ${permissionCheck.restrictedFields.join(', ')}`
+        );
+      }
 
       // 参数验证
       if (!name || !name.trim()) {
@@ -51,6 +64,11 @@ class AdminAdPlanController {
 
       if (!target || !target.trim()) {
         return ResponseUtils.badRequest("目标不能为空");
+      }
+
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, "账户ID必须是数字");
       }
 
       // 验证target枚举值
@@ -76,8 +94,8 @@ class AdminAdPlanController {
         return ResponseUtils.badRequest("投放类型不能为空");
       }
 
-      // 调用服务层创建广告计划
-      const result = await AdminAdPlanService.createAdPlan({
+      // 构建创建数据，只包含用户有权限设置的字段
+      const createData = {
         name: name.trim(),
         plan_type: plan_type.trim(),
         target,
@@ -86,18 +104,30 @@ class AdminAdPlanController {
         status: status || 0,
         chuang_yi_you_xuan: chuang_yi_you_xuan || 0,
         budget: budget || 0,
-        cost: cost || 0,
-        display_count: display_count || 0,
-        click_count: click_count || 0,
-        download_count: download_count || 0,
-        click_per_price: click_per_price || 0,
-        click_rate: click_rate || 0,
-        ecpm: ecpm || 0,
-        download_per_count: download_per_count || 0,
-        download_rate: download_rate || 0,
         start_date,
         end_date,
-      });
+      };
+
+      // 添加accountId到创建数据
+      if (accountId) {
+        createData.account_id = parseInt(accountId);
+      }
+
+      // 只有site_admin可以设置统计字段
+      if (req.user.role === 'site_admin') {
+        if (cost !== undefined) createData.cost = cost;
+        if (display_count !== undefined) createData.display_count = display_count;
+        if (click_count !== undefined) createData.click_count = click_count;
+        if (download_count !== undefined) createData.download_count = download_count;
+        if (click_per_price !== undefined) createData.click_per_price = click_per_price;
+        if (click_rate !== undefined) createData.click_rate = click_rate;
+        if (ecpm !== undefined) createData.ecpm = ecpm;
+        if (download_per_count !== undefined) createData.download_per_count = download_per_count;
+        if (download_rate !== undefined) createData.download_rate = download_rate;
+      }
+
+      // 调用服务层创建广告计划
+      const result = await AdminAdPlanService.createAdPlan(createData);
 
       if (!result.success) {
         return ResponseUtils.forbidden(res, result.message);
@@ -112,12 +142,13 @@ class AdminAdPlanController {
 
   /**
    * 修改广告计划
+   * 实现字段级权限控制
    */
   static async updateAdPlan(req, res) {
     try {
-      // 权限验证：只有超级管理员可以修改广告计划
-      if (!isAdmin(req.user)) {
-        return ResponseUtils.forbidden(res, "权限不足，只有管理员可以修改广告计划");
+      // 权限验证：需要ad_operator或site_admin权限
+      if (!req.user || (req.user.role !== 'ad_operator' && req.user.role !== 'site_admin')) {
+        return ResponseUtils.forbidden(res, "权限不足，需要广告操作员或站点管理员权限");
       }
 
       const { id } = req.params;
@@ -141,6 +172,7 @@ class AdminAdPlanController {
         download_rate,
         start_date,
         end_date,
+        accountId,
       } = req.body;
 
       // 参数验证
@@ -148,27 +180,23 @@ class AdminAdPlanController {
         return ResponseUtils.badRequest("广告计划ID无效");
       }
 
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, "账户ID必须是数字");
+      }
+
+      // 检查字段级权限
+      const requestedFields = Object.keys(req.body);
+      const permissionCheck = checkFieldPermissions(req.user, requestedFields);
+      
+      if (!permissionCheck.hasPermission) {
+        return ResponseUtils.forbidden(res, 
+          `权限不足，无法修改以下字段: ${permissionCheck.restrictedFields.join(', ')}`
+        );
+      }
+
       // 至少需要一个参数
-      const hasUpdateFields =
-        name !== undefined ||
-        plan_type !== undefined ||
-        target !== undefined ||
-        price_stratagy !== undefined ||
-        placement_type !== undefined ||
-        status !== undefined ||
-        chuang_yi_you_xuan !== undefined ||
-        budget !== undefined ||
-        cost !== undefined ||
-        display_count !== undefined ||
-        click_count !== undefined ||
-        download_count !== undefined ||
-        click_per_price !== undefined ||
-        click_rate !== undefined ||
-        ecpm !== undefined ||
-        download_per_count !== undefined ||
-        download_rate !== undefined ||
-        start_date !== undefined ||
-        end_date !== undefined;
+      const hasUpdateFields = requestedFields.length > 0;
 
       if (!hasUpdateFields) {
         return ResponseUtils.badRequest("至少需要提供一个要修改的字段");
@@ -215,33 +243,38 @@ class AdminAdPlanController {
         }
       }
 
-      // 构建更新数据
+      // 构建更新数据，只包含用户有权限修改的字段
       const updateData = {};
+      
+      // ad_operator和site_admin都可以修改的字段
       if (name !== undefined) updateData.name = name.trim();
       if (plan_type !== undefined) updateData.plan_type = plan_type.trim();
       if (target !== undefined) updateData.target = target;
-      if (price_stratagy !== undefined)
-        updateData.price_stratagy = price_stratagy;
-      if (placement_type !== undefined)
-        updateData.placement_type = placement_type.trim();
+      if (price_stratagy !== undefined) updateData.price_stratagy = price_stratagy;
+      if (placement_type !== undefined) updateData.placement_type = placement_type.trim();
       if (status !== undefined) updateData.status = status;
-      if (chuang_yi_you_xuan !== undefined)
-        updateData.chuang_yi_you_xuan = chuang_yi_you_xuan;
+      if (chuang_yi_you_xuan !== undefined) updateData.chuang_yi_you_xuan = chuang_yi_you_xuan;
       if (budget !== undefined) updateData.budget = budget;
-      if (cost !== undefined) updateData.cost = cost;
-      if (display_count !== undefined) updateData.display_count = display_count;
-      if (click_count !== undefined) updateData.click_count = click_count;
-      if (download_count !== undefined)
-        updateData.download_count = download_count;
-      if (click_per_price !== undefined)
-        updateData.click_per_price = click_per_price;
-      if (click_rate !== undefined) updateData.click_rate = click_rate;
-      if (ecpm !== undefined) updateData.ecpm = ecpm;
-      if (download_per_count !== undefined)
-        updateData.download_per_count = download_per_count;
-      if (download_rate !== undefined) updateData.download_rate = download_rate;
       if (start_date !== undefined) updateData.start_date = start_date;
       if (end_date !== undefined) updateData.end_date = end_date;
+
+      // 添加accountId到更新数据
+      if (accountId !== undefined) {
+        updateData.account_id = parseInt(accountId);
+      }
+
+      // 只有site_admin可以修改的统计字段
+      if (req.user.role === 'site_admin') {
+        if (cost !== undefined) updateData.cost = cost;
+        if (display_count !== undefined) updateData.display_count = display_count;
+        if (click_count !== undefined) updateData.click_count = click_count;
+        if (download_count !== undefined) updateData.download_count = download_count;
+        if (click_per_price !== undefined) updateData.click_per_price = click_per_price;
+        if (click_rate !== undefined) updateData.click_rate = click_rate;
+        if (ecpm !== undefined) updateData.ecpm = ecpm;
+        if (download_per_count !== undefined) updateData.download_per_count = download_per_count;
+        if (download_rate !== undefined) updateData.download_rate = download_rate;
+      }
 
       // 调用服务层修改广告计划
       const result = await AdminAdPlanService.updateAdPlan(
@@ -430,13 +463,19 @@ class AdminAdPlanController {
       }
 
       const { id } = req.params;
+      const { accountId } = req.query;
 
       // 参数验证
       if (!id || isNaN(parseInt(id))) {
         return ResponseUtils.badRequest("广告计划ID无效");
       }
 
-      const result = await AdminAdPlanService.deleteAdPlan(parseInt(id));
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, "账户ID必须是数字");
+      }
+
+      const result = await AdminAdPlanService.deleteAdPlan(parseInt(id), accountId ? parseInt(accountId) : null);
 
       if (result.success) {
         return ResponseUtils.success(res, 200, result.message);
@@ -446,6 +485,43 @@ class AdminAdPlanController {
     } catch (error) {
       console.error("删除广告计划失败:", error);
       return ResponseUtils.serverError(res, );
+    }
+  }
+
+  /**
+   * 删除广告组
+   */
+  static async deleteAdGroup(req, res) {
+    try {
+      // 权限验证：只有管理员可以删除广告组
+      if (!isAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以删除广告组');
+      }
+
+      const { id } = req.params;
+      const { accountId } = req.query;
+
+      // 参数验证
+      if (!id || isNaN(parseInt(id))) {
+        return ResponseUtils.badRequest(res, '广告组ID无效');
+      }
+
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, '账户ID必须是数字');
+      }
+
+      // 调用服务层删除广告组
+      const result = await AdminAdPlanService.deleteAdGroup(parseInt(id), accountId ? parseInt(accountId) : null);
+
+      if (!result.success) {
+        return ResponseUtils.badRequest(res, result.message);
+      }
+
+      return ResponseUtils.success(res, 200, result.message);
+    } catch (error) {
+      console.error('删除广告组失败:', error);
+      return ResponseUtils.serverError(res, '服务器内部错误');
     }
   }
 
@@ -501,16 +577,22 @@ class AdminAdPlanController {
         return ResponseUtils.forbidden(res, '权限不足，只有管理员可以创建广告组');
       }
 
-      const { name } = req.body;
+      const { name, accountId } = req.body;
 
       // 参数验证
       if (!name || !name.trim()) {
         return ResponseUtils.badRequest(res, '广告组名称不能为空');
       }
 
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, '账户ID必须是数字');
+      }
+
       // 调用服务层创建广告组
       const result = await AdminAdPlanService.createAdGroup({
-        name: name.trim()
+        name: name.trim(),
+        account_id: accountId ? parseInt(accountId) : null
       });
 
       if (!result.success) {
@@ -537,7 +619,7 @@ class AdminAdPlanController {
       }
 
       const { id } = req.params;
-      const { name } = req.body;
+      const { name, accountId } = req.body;
 
       // 参数验证
       if (!id || isNaN(parseInt(id))) {
@@ -548,10 +630,21 @@ class AdminAdPlanController {
         return ResponseUtils.badRequest(res, '广告组名称不能为空');
       }
 
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUtils.badRequest(res, '账户ID必须是数字');
+      }
+
       // 调用服务层修改广告组
-      const result = await AdminAdPlanService.updateAdGroup(parseInt(id), {
+      const updateData = {
         name: name.trim()
-      });
+      };
+      
+      if (accountId) {
+        updateData.account_id = parseInt(accountId);
+      }
+
+      const result = await AdminAdPlanService.updateAdGroup(parseInt(id), updateData);
 
       if (!result.success) {
         return ResponseUtils.badRequest(res, result.message);
@@ -569,33 +662,6 @@ class AdminAdPlanController {
   /**
    * 删除广告组
    */
-  static async deleteAdGroup(req, res) {
-    try {
-      // 权限验证：只有管理员可以删除广告组
-      if (!isAdmin(req.user)) {
-        return ResponseUtils.forbidden(res, '权限不足，只有管理员可以删除广告组');
-      }
-
-      const { id } = req.params;
-
-      // 参数验证
-      if (!id || isNaN(parseInt(id))) {
-        return ResponseUtils.badRequest(res, '广告组ID无效');
-      }
-
-      // 调用服务层删除广告组
-      const result = await AdminAdPlanService.deleteAdGroup(parseInt(id));
-
-      if (!result.success) {
-        return ResponseUtils.badRequest(res, result.message);
-      }
-
-      return ResponseUtils.success(res, 200, result.message);
-    } catch (error) {
-      console.error('删除广告组失败:', error);
-      return ResponseUtils.serverError(res, '服务器内部错误');
-    }
-  }
 }
 
 module.exports = AdminAdPlanController;

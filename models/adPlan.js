@@ -234,10 +234,30 @@ class AdPlan extends Base {
   }
 
   async getAdGroups(adPlanId) {
-    return this.knex('ad_plan_ad_group')
-      .where({ ad_plan_id: adPlanId })
-      .join('ad_group', 'ad_plan_ad_group.ad_group_id', '=', 'ad_group.id')
-      .select('ad_group.*');
+    const AdGroup = require('./adGroup');
+    return AdGroup.query()
+      .join('ad_plan_ad_group', 'ad_group.id', 'ad_plan_ad_group.ad_group_id')
+      .where('ad_plan_ad_group.ad_plan_id', adPlanId);
+  }
+
+  // Account关联方法
+  async findByAccountId(accountId) {
+    return this.query().where({ account_id: accountId });
+  }
+
+  async getAccount(id) {
+    const Account = require('./account');
+    const adPlan = await this.findById(id);
+    if (!adPlan) return null;
+    return Account.findById(adPlan.account_id);
+  }
+
+  async createWithAccount(data, accountId) {
+    return this.create({ ...data, account_id: accountId });
+  }
+
+  async updateAccount(id, accountId) {
+    return this.update(id, { account_id: accountId });
   }
 }
 

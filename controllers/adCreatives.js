@@ -8,7 +8,7 @@ class AdCreativesController {
   static async getAdCreativesList(req, res) {
     try {
       // 获取查询参数
-      const { page, pageSize, name, status } = req.query;
+      const { page, pageSize, name, status, accountId } = req.query;
       
       // 参数验证
       const queryParams = {};
@@ -40,6 +40,15 @@ class AdCreativesController {
         }
         queryParams.status = statusNum;
       }
+
+      // 添加accountId过滤
+      if (accountId) {
+        const accountIdNum = parseInt(accountId);
+        if (isNaN(accountIdNum)) {
+          return ResponseUnits.badRequest(res, '账户ID必须是数字');
+        }
+        queryParams.accountId = accountIdNum;
+      }
       
       // 调用service获取分页数据
       const result = await AdCreativesService.getAdCreativesList(queryParams);
@@ -60,9 +69,15 @@ class AdCreativesController {
   static async getAdCreativesDetail(req, res) {
     try {
       const { id } = req.params;
+      const { accountId } = req.query;
 
       if (!id) {
         return ResponseUnits.badRequest(res, '广告创意ID不能为空');
+      }
+
+      // 验证accountId参数
+      if (accountId && isNaN(parseInt(accountId))) {
+        return ResponseUnits.badRequest(res, '账户ID必须是数字');
       }
 
       const adCreative = await AdCreativesService.getAdCreativeById(id);
@@ -70,6 +85,12 @@ class AdCreativesController {
       if (!adCreative) {
         return ResponseUnits.notFound(res, '广告创意不存在');
       }
+
+      // 如果提供了accountId，检查是否匹配
+      if (accountId && adCreative.account_id !== parseInt(accountId)) {
+        return ResponseUnits.notFound(res, '广告创意不存在');
+      }
+
       return ResponseUnits.success(res, 200, '获取成功', {
         adCreative
       });

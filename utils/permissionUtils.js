@@ -23,6 +23,15 @@ function isAdmin(user) {
 }
 
 /**
+ * 检查用户是否有账户权限
+ * @param {Object} user - 用户信息对象
+ * @returns {boolean} - 是否有账户权限
+ */
+function hasAccountPermission(user) {
+  return user && (user.role === 'super-admin' || user.role === 'site_admin' || user.role === 'ad_operator');
+}
+
+/**
  * 验证超级管理员权限的中间件函数
  * @param {Object} req - 请求对象
  * @param {Object} res - 响应对象
@@ -70,10 +79,133 @@ function hasPermission(user, requiredRoles) {
   return false;
 }
 
+/**
+ * 检查用户是否有权限编辑指定字段
+ * @param {Object} user - 用户对象
+ * @param {Array} fields - 要编辑的字段数组
+ * @returns {Object} - 返回权限检查结果
+ */
+function checkFieldPermissions(user, fields) {
+  // 只有site_admin可以编辑的字段
+  const siteAdminOnlyFields = [
+    'cost',
+    'display_count', 
+    'click_count',
+    'download_count',
+    'click_per_price',
+    'click_rate',
+    'ecpm',
+    'download_per_count',
+    'download_rate'
+  ];
+
+  // ad_operator可以编辑的字段
+  const adOperatorFields = [
+    'name',
+    'plan_type',
+    'target',
+    'price_stratagy',
+    'placement_type',
+    'status',
+    'chuang_yi_you_xuan',
+    'budget',
+    'start_date',
+    'end_date'
+  ];
+
+  const restrictedFields = [];
+  const allowedFields = [];
+
+  for (const field of fields) {
+    if (siteAdminOnlyFields.includes(field)) {
+      // 只有site_admin可以编辑这些字段
+      if (user.role === 'site_admin') {
+        allowedFields.push(field);
+      } else {
+        restrictedFields.push(field);
+      }
+    } else if (adOperatorFields.includes(field)) {
+      // ad_operator和site_admin都可以编辑这些字段
+      if (user.role === 'site_admin' || user.role === 'ad_operator') {
+        allowedFields.push(field);
+      } else {
+        restrictedFields.push(field);
+      }
+    } else {
+      // 未知字段，默认拒绝
+      restrictedFields.push(field);
+    }
+  }
+
+  return {
+    hasPermission: restrictedFields.length === 0,
+    restrictedFields,
+    allowedFields
+  };
+}
+
+/**
+ * 检查 AdCreatives 字段权限
+ * @param {Object} user - 用户对象
+ * @param {Array} requestedFields - 请求的字段列表
+ * @returns {Object} - 权限检查结果
+ */
+function checkAdCreativesFieldPermissions(user, requestedFields) {
+  // ad_operator 只能操作基本字段
+  const adOperatorFields = [
+    'name',
+    'display_id', 
+    'status',
+    'budget'
+  ];
+
+  // site_admin 可以操作所有字段（包括统计字段）
+  const siteAdminOnlyFields = [
+    'download_cost',
+    'click_cost',
+    'costs',
+    'download_count',
+    'download_rate',
+    'ecpm',
+    'display_count',
+    'click_count',
+    'click_rate'
+  ];
+
+  // 如果是 site_admin，可以操作所有字段
+  if (user.role === 'site_admin') {
+    return {
+      hasPermission: true,
+      restrictedFields: []
+    };
+  }
+
+  // 如果是 ad_operator，只能操作基本字段
+  if (user.role === 'ad_operator') {
+    const restrictedFields = requestedFields.filter(field => 
+      !adOperatorFields.includes(field)
+    );
+    
+    return {
+      hasPermission: restrictedFields.length === 0,
+      restrictedFields
+    };
+  }
+
+  // 其他角色没有权限
+  return {
+    hasPermission: false,
+    restrictedFields: requestedFields
+  };
+}
+
 module.exports = {
   isSuperAdmin,
   isAdmin,
+  hasAccountPermission,
   requireSuperAdmin,
   requireAdmin,
-  hasPermission
+  hasPermission,
+  checkFieldPermissions,
+  checkAdCreativesFieldPermissions
 };

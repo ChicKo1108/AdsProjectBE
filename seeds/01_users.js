@@ -15,37 +15,46 @@ exports.seed = async function(knex) {
   await knex('user').insert([
     {
       id: 1,
-      username: 'admin',
+      username: 'superadmin',
       password: adminPassword,
-      name: '系统管理员',
+      name: '系统超级管理员',
       role: 'super-admin',
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: 2,
-      username: 'manager',
+      username: 'siteadmin1',
       password: hashedPassword,
-      name: '广告经理',
-      role: 'admin',
+      name: '账户管理员1',
+      role: 'user', // 普通用户，权限通过user_account表管理
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: 3,
-      username: 'user1',
+      username: 'operator1',
       password: hashedPassword,
-      name: '普通用户1',
-      role: 'user',
+      name: '广告操作员1',
+      role: 'user', // 普通用户，权限通过user_account表管理
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: 4,
-      username: 'user2',
+      username: 'operator2',
       password: hashedPassword,
-      name: '普通用户2',
-      role: 'user',
+      name: '广告操作员2',
+      role: 'user', // 普通用户，权限通过user_account表管理
+      created_at: new Date(),
+      updated_at: new Date()
+    },
+    {
+      id: 5,
+      username: 'testuser',
+      password: hashedPassword,
+      name: '测试用户',
+      role: 'user', // 普通用户，无账户权限
       created_at: new Date(),
       updated_at: new Date()
     }

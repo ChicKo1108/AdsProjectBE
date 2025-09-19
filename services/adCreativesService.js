@@ -20,11 +20,16 @@ class AdCreativesService {
    * @returns {Promise<Object>} 分页的广告创意列表
    */
   static async getAdCreativesList(params = {}) {
-    const { page = 1, pageSize = 10, name, status } = params;
+    const { page = 1, pageSize = 10, name, status, accountId } = params;
     const offset = (page - 1) * pageSize;
 
     // 构建基础查询
     let query = knex("ad_creatives").select("*").orderBy("id", "desc");
+
+    // 按accountId过滤
+    if (accountId) {
+      query = query.where('account_id', parseInt(accountId));
+    }
 
     // 添加名称搜索条件
     if (name && name.trim()) {
@@ -42,6 +47,10 @@ class AdCreativesService {
     let countQuery = knex("ad_creatives");
 
     // 添加与主查询相同的筛选条件
+    if (accountId) {
+      countQuery = countQuery.where('account_id', parseInt(accountId));
+    }
+
     if (name && name.trim()) {
       countQuery = countQuery.orWhere("name", "like", `%${name.trim()}%`);
       countQuery = countQuery.orWhere("display_id", "like", `%${name.trim()}%`);

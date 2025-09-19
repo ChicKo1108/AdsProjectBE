@@ -23,6 +23,7 @@ exports.seed = async function(knex) {
       display_count: 8000,
       click_count: 280,
       click_rate: 3.5,
+      account_id: 1,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -41,6 +42,7 @@ exports.seed = async function(knex) {
       display_count: 15000,
       click_count: 500,
       click_rate: 3.33,
+      account_id: 1,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -59,6 +61,7 @@ exports.seed = async function(knex) {
       display_count: 0,
       click_count: 0,
       click_rate: 0.0,
+      account_id: 2,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -77,6 +80,7 @@ exports.seed = async function(knex) {
       display_count: 10000,
       click_count: 300,
       click_rate: 3.0,
+      account_id: 2,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -95,6 +99,7 @@ exports.seed = async function(knex) {
       display_count: 20000,
       click_count: 550,
       click_rate: 2.75,
+      account_id: 3,
       created_at: new Date(),
       updated_at: new Date()
     }
