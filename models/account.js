@@ -166,6 +166,7 @@ class Account extends Base {
       .select(
         'user.id',
         'user.username',
+        'user.name',
         'user.role as user_system_role',
         'user.ban',
         'user.created_at as user_created_at',

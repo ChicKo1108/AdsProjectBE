@@ -8,7 +8,7 @@ class AdminAccountService {
    */
   static async updateAccount(updateData) {
     const trx = await knex.transaction();
-    
+    console.log('updateData', updateData);
     try {
       // 检查是否存在账户记录，如果不存在则创建默认账户
       let account = await trx('account').first();
