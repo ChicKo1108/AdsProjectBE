@@ -141,11 +141,181 @@ class AdminUserService {
   static async getUserList() {
     try {
       return await knex('user')
-        .select('id', 'username', 'name', 'role', 'created_at', 'updated_at')
-        .orderBy('id', 'asc');
+        .select('id', 'username', 'name', 'role', 'ban', 'created_at', 'updated_at')
+        .orderBy('created_at', 'desc');
+
     } catch (error) {
       console.error('获取用户列表失败:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 获取用户的账户绑定信息
+   * @param {number} userId - 用户ID
+   * @returns {Promise<Object>} 用户账户绑定信息
+   */
+  static async getUserAccounts(userId) {
+    try {
+      const accounts = await User.getAccounts(userId);
+      return { accounts };
+    } catch (error) {
+      console.error('获取用户账户绑定失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 绑定用户到账户
+   * @param {number} userId - 用户ID
+   * @param {number} accountId - 账户ID
+   * @param {string} role - 角色
+   * @returns {Promise<Object>} 绑定结果
+   */
+  static async bindUserAccount(userId, accountId, role) {
+    try {
+      // 检查用户是否存在
+      const user = await knex('user').where('id', userId).first();
+      if (!user) {
+        return {
+          success: false,
+          message: '用户不存在'
+        };
+      }
+
+      // 检查账户是否存在
+      const account = await knex('account').where('id', accountId).first();
+      if (!account) {
+        return {
+          success: false,
+          message: '账户不存在'
+        };
+      }
+
+      // 检查是否已经绑定
+      const existingBinding = await knex('user_account')
+        .where({ user_id: userId, account_id: accountId })
+        .first();
+
+      if (existingBinding) {
+        if (existingBinding.is_active) {
+          return {
+            success: false,
+            message: '用户已绑定到该账户'
+          };
+        } else {
+          // 如果存在但未激活，则激活并更新角色
+          await knex('user_account')
+            .where({ user_id: userId, account_id: accountId })
+            .update({
+              role: role,
+              is_active: true,
+              updated_at: new Date()
+            });
+        }
+      } else {
+        // 创建新的绑定关系
+        await User.bindAccount(userId, accountId, role);
+      }
+
+      return {
+        success: true,
+        data: {
+          userId,
+          accountId,
+          role,
+          message: '用户账户绑定成功'
+        }
+      };
+    } catch (error) {
+      console.error('绑定用户账户失败:', error);
+      return {
+        success: false,
+        message: '绑定用户账户失败'
+      };
+    }
+  }
+
+  /**
+   * 解绑用户账户
+   * @param {number} userId - 用户ID
+   * @param {number} accountId - 账户ID
+   * @returns {Promise<Object>} 解绑结果
+   */
+  static async unbindUserAccount(userId, accountId) {
+    try {
+      // 检查绑定关系是否存在
+      console.log('解绑用户账户', { userId, accountId });
+      const binding = await knex('user_account')
+        .where({ user_id: userId, account_id: accountId, is_active: true })
+        .first();
+
+      if (!binding) {
+        return {
+          success: false,
+          message: '用户账户绑定关系不存在'
+        };
+      }
+
+      // 解绑（设置为非激活状态）
+      await User.unbindAccount(userId, accountId);
+
+      return {
+        success: true,
+        data: {
+          userId,
+          accountId,
+          message: '用户账户解绑成功'
+        }
+      };
+    } catch (error) {
+      console.error('解绑用户账户失败:', error);
+      return {
+        success: false,
+        message: '解绑用户账户失败'
+      };
+    }
+  }
+
+  /**
+   * 更新用户账户权限
+   * @param {number} userId - 用户ID
+   * @param {number} accountId - 账户ID
+   * @param {string} role - 新角色
+   * @returns {Promise<Object>} 更新结果
+   */
+  static async updateUserAccountRole(userId, accountId, role) {
+    try {
+      // 检查绑定关系是否存在
+      const binding = await knex('user_account')
+        .where({ user_id: userId, account_id: accountId, is_active: true })
+        .first();
+
+      if (!binding) {
+        return {
+          success: false,
+          message: '用户账户绑定关系不存在'
+        };
+      }
+
+      // 更新角色
+      await User.updateAccountRole(userId, accountId, role);
+
+      return {
+        success: true,
+        data: {
+          userId,
+          accountId,
+          role,
+          message: '用户账户权限更新成功'
+        }
+      };
+    } catch (error) {
+      console.error('更新用户账户权限失败:', error);
+      return {
+        success: false,
+        message: '更新用户账户权限失败'
+      };
     }
   }
 }

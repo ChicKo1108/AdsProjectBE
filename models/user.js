@@ -25,17 +25,17 @@ class User extends Base {
 
   // 根据用户名查找用户
   findByUsername(username) {
-    return require('../models/knex')(this.table).where('username', username).first();
+    return this.query().where('username', username).first();
   }
 
   // 根据角色查找用户
   findByRole(role) {
-    return require('../models/knex')(this.table).where('role', role).select();
+    return this.query().where('role', role).select();
   }
 
   // 检查用户是否被禁用
   isBanned(id) {
-    return require('../models/knex')(this.table).where('id', id).first()
+    return this.query().where('id', id).first()
       .then(user => {
         if (!user) return Promise.reject(new Error('用户不存在'));
         return !!user.ban;
@@ -154,7 +154,7 @@ class User extends Base {
 
   // 检查用户是否为超级管理员
   isSuperAdmin(userId) {
-    return require('../models/knex')(this.table)
+    return this.query()
       .where('id', userId)
       .first()
       .then(user => {
@@ -166,7 +166,7 @@ class User extends Base {
   getUserPermissions(userId) {
     return Promise.all([
       // 获取用户基本信息和全局权限
-      require('../models/knex')(this.table).where('id', userId).first(),
+      this.query().where('id', userId).first(),
       // 获取用户在各账户中的权限
       this.getAccounts(userId)
     ]).then(([user, accounts]) => {
@@ -218,41 +218,6 @@ class User extends Base {
       } else {
         // 普通用户只能访问已绑定的账户
         return this.getAccounts(userId);
-      }
-    });
-  }
-
-  // 验证用户对账户的操作权限
-  validateAccountOperation(userId, accountId, operation = 'read') {
-    return Promise.all([
-      this.isSuperAdmin(userId),
-      require('../models/knex')('user_account')
-        .where({ user_id: userId, account_id: accountId, is_active: true })
-        .first()
-    ]).then(([isSuperAdmin, accountRelation]) => {
-      // 超级管理员拥有所有权限
-      if (isSuperAdmin) {
-        return true;
-      }
-
-      // 检查账户关联
-      if (!accountRelation) {
-        return false;
-      }
-
-      // 根据操作类型和角色判断权限
-      switch (operation) {
-        case 'read':
-          // 所有角色都可以读取
-          return true;
-        case 'write':
-        case 'update':
-        case 'delete':
-        case 'manage':
-          // 只有site_admin可以写入、更新、删除和管理
-          return accountRelation.role === 'site_admin';
-        default:
-          return false;
       }
     });
   }

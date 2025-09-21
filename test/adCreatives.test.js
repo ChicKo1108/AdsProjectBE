@@ -138,7 +138,7 @@ describe('广告创意管理测试', () => {
       expect(response.body.message).toBe('广告创意名称不能为空');
     });
     
-    test('创建广告创意失败 - 展示ID为空', async () => {
+    test('创建广告创意失败 - Display ID为空', async () => {
       const response = await request(app)
         .post('/api/admin/ad-creatives')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -150,7 +150,7 @@ describe('广告创意管理测试', () => {
       
       expect(response.status).toBe(400);
       expect(response.body.code).toBe(400);
-      expect(response.body.message).toBe('展示ID不能为空');
+      expect(response.body.message).toBe('Display ID不能为空');
     });
     
     test('创建广告创意失败 - 状态值无效', async () => {
@@ -199,19 +199,19 @@ describe('广告创意管理测试', () => {
       expect(response.body.message).toBe('广告创意名称已存在');
     });
     
-    test('创建广告创意失败 - 展示ID已存在', async () => {
+    test('创建广告创意失败 - Display ID已存在', async () => {
       const response = await request(app)
         .post('/api/admin/ad-creatives')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: '测试广告创意9',
-          display_id: 'TEST_AD_001', // 已存在的展示ID
+          display_id: 'TEST_AD_001', // 已存在的Display ID
           status: 1
         });
       
       expect(response.status).toBe(400);
       expect(response.body.code).toBe(400);
-      expect(response.body.message).toBe('展示ID已存在');
+      expect(response.body.message).toBe('Display ID已存在');
     });
   });
   

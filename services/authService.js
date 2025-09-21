@@ -16,7 +16,10 @@ class AuthService {
   static async login(username, password) {
     try {
       // 查找用户
+      debugger;
       const user = await knex('user').where({ username }).first();
+      console.log(user);
+      
       if (!user) {
         return {
           success: false,
@@ -30,6 +33,14 @@ class AuthService {
         return {
           success: false,
           message: '用户名或密码错误'
+        };
+      }
+
+      // 验证账号封禁
+      if (user.ban) {
+        return {
+          success: false,
+          message: '账号已被封禁'
         };
       }
 
@@ -151,13 +162,22 @@ class AuthService {
       // 检查用户是否仍然存在
       const user = await knex('user')
         .where({ id: decoded.userId })
-        .select('id', 'username', 'name', 'role')
+        .select('id', 'username', 'name', 'role', 'ban')
         .first();
       
       if (!user) {
         return {
           success: false,
           message: '用户不存在'
+        };
+      }
+
+      // 验证账号封禁
+      if (user.ban) {
+        return {
+          success: false,
+          message: '账号已被封禁',
+          banned: true
         };
       }
 

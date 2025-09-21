@@ -5,10 +5,10 @@ const { requireSuperAdminOrAccountPermission } = require('../../middleware/permi
 const AdminAdCreativeController = require('../../controllers/admin/adCreative');
 
 // 创建广告创意 - 需要账户管理员权限
-router.post('/', authMiddleware, requireSuperAdminOrAccountPermission('site_admin'), AdminAdCreativeController.createAdCreative);
+router.post('/', authMiddleware, requireSuperAdminOrAccountPermission('ad_operator'), AdminAdCreativeController.createAdCreative);
 
 // 修改广告创意 - 需要账户管理员权限
-router.put('/:id', authMiddleware, requireSuperAdminOrAccountPermission('site_admin'), AdminAdCreativeController.updateAdCreative);
+router.put('/:id', authMiddleware, requireSuperAdminOrAccountPermission('ad_operator'), AdminAdCreativeController.updateAdCreative);
 
 // 删除广告创意 - 需要账户管理员权限
 router.delete('/:id', authMiddleware, requireSuperAdminOrAccountPermission('site_admin'), AdminAdCreativeController.deleteAdCreative);

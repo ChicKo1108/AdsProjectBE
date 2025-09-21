@@ -8,9 +8,10 @@ class AdminAdCreativeService {
    */
   static async createAdCreative(adCreativeData) {
     try {
-      // 检查广告创意名称是否已存在
+      // 检查广告创意名称在当前账户下是否已存在
       const existingAdCreative = await knex('ad_creatives')
         .where('name', adCreativeData.name)
+        .where('account_id', adCreativeData.account_id)
         .first();
 
       if (existingAdCreative) {
@@ -23,12 +24,13 @@ class AdminAdCreativeService {
       // 检查display_id是否已存在
       const existingDisplayId = await knex('ad_creatives')
         .where('display_id', adCreativeData.display_id)
+        .where('account_id', adCreativeData.account_id)
         .first();
 
       if (existingDisplayId) {
         return {
           success: false,
-          message: '展示ID已存在'
+          message: 'Display ID已存在'
         };
       }
 
@@ -88,6 +90,7 @@ class AdminAdCreativeService {
       if (updateData.name && updateData.name !== existingAdCreative.name) {
         const duplicateName = await trx('ad_creatives')
           .where('name', updateData.name)
+          .where('account_id', existingAdCreative.account_id)
           .where('id', '!=', adCreativeId)
           .first();
 
@@ -104,6 +107,7 @@ class AdminAdCreativeService {
       if (updateData.display_id && updateData.display_id !== existingAdCreative.display_id) {
         const duplicateDisplayId = await trx('ad_creatives')
           .where('display_id', updateData.display_id)
+          .where('account_id', existingAdCreative.account_id)
           .where('id', '!=', adCreativeId)
           .first();
 
@@ -111,7 +115,7 @@ class AdminAdCreativeService {
           await trx.rollback();
           return {
             success: false,
-            message: '展示ID已存在'
+            message: 'Display ID已存在'
           };
         }
       }

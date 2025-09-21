@@ -13,4 +13,16 @@ router.get('/', authMiddleware, requireSuperAdmin, AdminUserController.getUserLi
 // 修改用户 - 只有超级管理员可以修改用户
 router.put('/:id', authMiddleware, requireSuperAdmin, AdminUserController.updateUser);
 
+// 获取用户的账户绑定信息 - 只有超级管理员可以查看
+router.get('/:id/accounts', authMiddleware, requireSuperAdmin, AdminUserController.getUserAccounts);
+
+// 绑定用户到账户 - 只有超级管理员可以操作
+router.post('/:id/accounts', authMiddleware, requireSuperAdmin, AdminUserController.bindUserAccount);
+
+// 解绑用户账户 - 只有超级管理员可以操作
+router.delete('/:id/accounts', authMiddleware, requireSuperAdmin, AdminUserController.unbindUserAccount);
+
+// 更新用户账户权限 - 只有超级管理员可以操作
+router.put('/:id/accounts', authMiddleware, requireSuperAdmin, AdminUserController.updateUserAccountRole);
+
 module.exports = router;

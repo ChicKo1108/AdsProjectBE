@@ -1,6 +1,7 @@
 const AdminAccountService = require("../../services/admin/accountService");
 const { isSuperAdmin } = require("../../utils/permissionUtils");
 const ResponseUtils = require("../../utils/responseUtils");
+const Account = require("../../models/account");
 
 class AdminAccountController {
   /**
@@ -33,16 +34,33 @@ class AdminAccountController {
   }
 
   /**
+   * 获取所有账户列表
+   * 只有超级管理员可以查看所有账户
+   */
+  static async getAccountList(req, res) {
+    try {
+      // 权限验证：只有超级管理员可以获取所有账户列表
+      if (!isSuperAdmin(req.user)) {
+        return ResponseUtils.forbidden(res, '权限不足，只有超级管理员可以获取账户列表');
+      }
+
+      // 获取所有账户
+      const accounts = await Account.all();
+      
+      return ResponseUtils.success(res, 200, '获取账户列表成功', accounts);
+    } catch (error) {
+      console.error('获取账户列表失败:', error);
+      return ResponseUtils.serverError(res, '获取账户列表失败');
+    }
+  }
+
+  /**
    * 修改账户信息
    * 只有super-admin和当前账户下的site_admin才能修改
    */
   static async updateAccount(req, res) {
     try {
-      // 权限验证：只有super-admin或当前账户的site_admin可以修改账户信息
-      const isSuperAdminUser = isSuperAdmin(req.user);
-      const isAccountSiteAdmin = req.user && req.user.role === 'site_admin';
-      
-      if (!isSuperAdminUser && !isAccountSiteAdmin) {
+      if (!hasAccountPermission(req)) {
         return ResponseUtils.forbidden(res, "权限不足，只有超级管理员或账户管理员可以修改账户信息");
       }
 

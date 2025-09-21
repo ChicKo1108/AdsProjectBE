@@ -11,6 +11,7 @@ class AdminAdPlanService {
       // 检查广告计划名称是否已存在
       const existingAdPlan = await knex('ad_plan')
         .where('name', adPlanData.name)
+        .where('account_id', adPlanData.account_id)
         .first();
 
       if (existingAdPlan) {
@@ -73,6 +74,7 @@ class AdminAdPlanService {
       if (updateData.name && updateData.name !== existingAdPlan.name) {
         const nameExists = await trx('ad_plan')
           .where('name', updateData.name)
+          .where('account_id', existingAdPlan.account_id)
           .where('id', '!=', adPlanId)
           .first();
         
@@ -567,9 +569,10 @@ class AdminAdPlanService {
    */
   static async createAdGroup(adGroupData) {
     try {
-      // 检查广告组名称是否已存在
+      // 创建广告组数
       const existingAdGroup = await knex('ad_group')
         .where('name', adGroupData.name)
+        .where('account_id', adGroupData.account_id)
         .first();
 
       if (existingAdGroup) {
@@ -579,7 +582,7 @@ class AdminAdPlanService {
         };
       }
 
-      // 创建广告组数据
+      // 准备广告组数据
       const newAdGroupData = {
         ...adGroupData,
         created_at: new Date(),
@@ -628,10 +631,11 @@ class AdminAdPlanService {
         };
       }
 
-      // 如果要修改名称，检查新名称是否已被其他广告组使用
+      // 检查广告组名称是否已存在
       if (updateData.name && updateData.name !== existingAdGroup.name) {
         const duplicateAdGroup = await trx('ad_group')
           .where('name', updateData.name)
+          .where('account_id', existingAdGroup.account_id)
           .where('id', '!=', adGroupId)
           .first();
         
