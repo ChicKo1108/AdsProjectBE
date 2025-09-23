@@ -66,6 +66,13 @@ async function checkAdPlanFieldPermissions(
   requestedFields,
   accountId = null
 ) {
+  // 超管不需要验证字段
+  if (user.role === 'super-admin') {
+    return {
+      hasPermission: true,
+      restrictedFields: [],
+    };
+  }
   // ad_operator 只能操作基本字段
   const adOperatorFields = [
     "chuang_yi_you_xuan",
@@ -88,7 +95,7 @@ async function checkAdPlanFieldPermissions(
   }
 
   // 如果是 site_admin，可以操作所有字段
-  if (userAccountPermisson.accountRole === "site_admin" || user.role === 'super-admin') {
+  if (userAccountPermisson.accountRole === "site_admin") {
     return {
       hasPermission: true,
       restrictedFields: [],
@@ -126,6 +133,13 @@ async function checkAdCreativesFieldPermissions(
   requestedFields,
   accountId = null
 ) {
+  // 超管不需要验证字段
+  if (user.role === 'super-admin') {
+    return {
+      hasPermission: true,
+      restrictedFields: [],
+    };
+  }
   // ad_operator 只能操作基本字段
   const adOperatorFields = [
     "name",
@@ -147,7 +161,7 @@ async function checkAdCreativesFieldPermissions(
     };
   }
   // 如果是 site_admin，可以操作所有字段
-  if (userAccountPermisson.accountRole === "site_admin" || user.role === 'super-admin') {
+  if (userAccountPermisson.accountRole === "site_admin") {
     return {
       hasPermission: true,
       restrictedFields: [],
