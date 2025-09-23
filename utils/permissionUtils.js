@@ -88,7 +88,7 @@ async function checkAdPlanFieldPermissions(
   }
 
   // 如果是 site_admin，可以操作所有字段
-  if (userAccountPermisson.accountRole === "site_admin") {
+  if (userAccountPermisson.accountRole === "site_admin" || user.role === 'super-admin') {
     return {
       hasPermission: true,
       restrictedFields: [],
@@ -147,7 +147,7 @@ async function checkAdCreativesFieldPermissions(
     };
   }
   // 如果是 site_admin，可以操作所有字段
-  if (userAccountPermisson.accountRole === "site_admin") {
+  if (userAccountPermisson.accountRole === "site_admin" || user.role === 'super-admin') {
     return {
       hasPermission: true,
       restrictedFields: [],
