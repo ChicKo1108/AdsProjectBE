@@ -17,6 +17,6 @@ router.post('/', authMiddleware, requireSuperAdmin, AdminAccountController.creat
 router.get('/:accountId', authMiddleware, AdminAccountController.getAccount);
 
 // 修改账户信息 - 超级管理员或账户管理员可以修改
-router.put('/:id', authMiddleware, requireSuperAdminOrAccountPermission('site_admin'), AdminAccountController.updateAccount);
+router.put('/:id', authMiddleware, requireSuperAdminOrAccountPermission('site_admin', 'id'), AdminAccountController.updateAccount);
 
 module.exports = router;
