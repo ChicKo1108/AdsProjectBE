@@ -120,7 +120,8 @@ class AdminAdPlanController {
       }
 
       // 只有site_admin可以设置统计字段
-      if (req.user.role === "site_admin") {
+      const accountPermission = req.user.accountPermissions.find(a => a.accountId === accountId);
+      if (req.user.role === "super-admin" || accountPermission.accountRole === "site_admin") {
         if (cost !== undefined) createData.cost = cost;
         if (display_count !== undefined)
           createData.display_count = display_count;
@@ -252,7 +253,8 @@ class AdminAdPlanController {
       if (end_date !== undefined) updateData.end_date = end_date;
 
       // 只有site_admin可以修改的统计字段
-      if (req.user.role === "site_admin") {
+      const accountPermission = req.user.accountPermissions.find(a => a.accountId === accountId);
+      if (req.user.role === "super-admin" || accountPermission.accountRole === "site_admin") {
         if (cost !== undefined) updateData.cost = cost;
         if (display_count !== undefined)
           updateData.display_count = display_count;
