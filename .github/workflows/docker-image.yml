@@ -23,7 +23,7 @@ jobs:
         uses: marcodallasanta/ssh-scp-deploy@v1.2.0
         with:
           local: "docker-images/ads-backend-latest.tar.gz"
-          remote: "~/opt/docker-images/"
+          remote: "/opt/docker-images/"
           host: ${{ secrets.SERVER_HOST }}
           user: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_SSH_KEY }}
