@@ -17,8 +17,21 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.ACR_REGISTRY }}/qianwan_ads/ads_be:latest
-            ${{ secrets.ACR_REGISTRY }}/qianwan_ads/ads_be:${{ github.sha }}
+          context: ./be
+          dockerfile: ./be/Dockerfile
+          tags: ads-backend:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Create ouput directory
+        run: mkdir -p docker-images
+      - name: Export image to tar.gz
+        run: docker save ads-backend:latest | gzip > docker-images/ads-backend-latest.tar.gz
+      - name: Upload to remote server
+        uses: marcodallasanta/ssh-scp-deploy@v1.2.0
+        with:
+          local: "docker-images/ads-backend-latest.tar.gz"
+          remote: "~/opt/docker-images/"
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_SSH_KEY }}
