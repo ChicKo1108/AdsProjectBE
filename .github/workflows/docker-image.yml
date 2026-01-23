@@ -11,8 +11,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./be
-          dockerfile: ./be/Dockerfile
+          context: .
+          dockerfile: ./Dockerfile
           tags: ads-backend:latest
           load: true
       - name: Create output directory
