@@ -1,4 +1,4 @@
-name: Build and Push to Aliyun ACR (qianwan_ads/ads_fe)
+name: Build and Push to ACR 
 on:
   workflow_dispatch:
 
